@@ -21,10 +21,8 @@ SweeperNuklear := class extend SimpleWindow
 
 gRenderPassLight := VkRenderPass
 
-vk := SimpleWindow^
 main := !(char^[] args) -> void
 {
 	w := new SweeperNuklear()
-	vk = w
-	vk.Run()
+	w.Run()
 }
