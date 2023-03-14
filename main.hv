@@ -19,8 +19,6 @@ SweeperNuklear := class extend SimpleWindow
 	}
 }
 
-gRenderPassLight := VkRenderPass
-
 main := !(char^[] args) -> void
 {
 	w := new SweeperNuklear()
