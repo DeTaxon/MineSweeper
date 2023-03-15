@@ -1,26 +1,181 @@
+//TODO windows support
+//TODO make video card selector, it force
+//TODO check what couse memory overuse
+//TODO redraw when only mouse moved?
+//TODO nk_convert have it's limits, maybe overwrite library?
 
 SweeperNuklear := class extend SimpleWindow
 {
-	DrawCode := virtual !(void^ nk) -> void
+	unknownPlace := void^
+	pressedPlace := void^
+	pressedMinePlace := void^
+
+	mineField := bool[81] //TODO make 9*9
+	mineFieldPressed := bool[81]
+	mineFieldWeight := int[81]
+
+	
+	InitWindow := virtual !(void^ nk) -> void
 	{
-		intVal := char[256]
-		sprintf(intVal[0]&,"fps %i",15)
+		ResetField()
+	}
+	ResetField := !() -> void
+	{
+		for i : 81
+		{
+			mineField[i] = false
+			mineFieldPressed[i] = false
+		}
+
+		mines := 10
+		while mines != 0
+		{
+			x := RandInt(0..8)
+			y := RandInt(0..8)
+
+			if mineField[x + y*9]
+				continue
+			mineField[x + y*9] = true
+			mines -= 1
+		}
+
+		for x : 9
+		{
+			for y : 9
+			{
+				mineFieldWeight[x+y*9] = GetSpaceWeight(x,y)
+			}
+		}
+		
+	}
+
+	GetSpaceWeight := !(int x, int y) -> int
+	{
+		diffs := ![-1,0,1]
+		for dX : diffs
+		{
+			newX := x + dX
+			if newX < 0 or newX >= 9
+				continue
+			for dY : diffs
+			{
+				newY := y + dY
+				if newY < 0 or newY >= 9
+					continue
+				if mineField[newX + newY*9]
+					result += 1
+			}
+		}
+	}
+	DrawCode := virtual !(void^ nk,int w, int h) -> void
+	{
+		red := nk_color
+		red.r = 255
+		red.a = 255
+
+		gray := nk_color
+		gray.r = 128
+		gray.g = gray.r
+		gray.b = gray.r
+		gray.a = 255
+
+		if unknownPlace == null
+		{
+			unknownPlace = malloc(nke_style_button_size())
+			nke_style_button_copy_from_context(nk,unknownPlace)
+			//nke_style_button_set_color(unknownPlace,2,red)
+
+			pressedPlace = malloc(nke_style_button_size())
+			nke_style_button_copy_from_context(nk,pressedPlace)
+			nke_style_button_set_color(pressedPlace,0,gray)
+			nke_style_button_set_color(pressedPlace,1,gray)
+			nke_style_button_set_color(pressedPlace,2,gray)
+
+			pressedMinePlace = malloc(nke_style_button_size())
+			nke_style_button_copy_from_context(nk,pressedMinePlace)
+			nke_style_button_set_color(pressedMinePlace,0,red)
+			nke_style_button_set_color(pressedMinePlace,1,red)
+			nke_style_button_set_color(pressedMinePlace,2,red)
+		}
+
 		rect := nk_rect//(10,10,100,100)
 		rect.x = 0
 		rect.y = 0
-		rect.w = 250
-		rect.h = 250
-		if nk_begin(nk,"HI",rect,NK_WINDOW_MOVABLE + NK_WINDOW_BORDER + NK_WINDOW_CLOSABLE) != 0
+		rect.w = w
+		rect.h = h
+		if nk_begin(nk,"DoesNotMatter",rect,0) != 0
 		{
+			nk_layout_row_static(nk,15,30,1)
+			nk_label(nk,"",0)
 			nk_layout_row_dynamic(nk,30,1)
-			nk_label(nk,intVal[0]&,0x11)
+			if nk_button_label(nk,"Reset")
+			{
+				ResetField()
+			}
+			nk_layout_row_static(nk,15,30,1)
+			nk_label(nk,"",0)
+			
+			nk_layout_row_template_begin(nk,30)
+			nk_layout_row_template_push_dynamic(nk)
+			for i : 9
+				nk_layout_row_template_push_static(nk,30)
+			nk_layout_row_template_push_dynamic(nk)
+			nk_layout_row_template_end(nk)
+
+			//nk_layout_row_static(nk,30,30,9)
+			for x : 9
+			{
+				nk_label(nk,"",0)
+				for y : 9
+				{
+					if mineFieldPressed[x+y*9]
+					{
+						if not mineField[x + y*9]
+						{
+							fVal := mineFieldWeight[x+y*9]
+							nk_button_label_styled(nk,pressedPlace,!["","1","2","3","4","5","6","7","8","9"][fVal])
+						}else{
+							nk_button_label_styled(nk,pressedMinePlace,"")
+						}
+					}else{
+						if nk_button_label_styled(nk,unknownPlace,"")
+						{
+							PressField(x,y)
+						}
+					}
+				}
+				nk_label(nk,"",0)
+			}
 		}
 		nk_end(nk)
+	}
+	PressField := !(int x, int y) -> void
+	{
+		if mineFieldPressed[x+y*9]
+			return void
+		mineFieldPressed[x+y*9] = true
+		if GetSpaceWeight(x,y) != 0
+			return void
+
+		diffs := ![-1,0,1]
+		for dX : diffs
+		{
+			newX := x + dX
+			if newX < 0 or newX >= 9
+				continue
+			for dY : diffs
+			{
+				newY := y + dY
+				if newY < 0 or newY >= 9
+					continue
+				PressField(newX,newY)
+			}
+		}
 	}
 }
 
 main := !(char^[] args) -> void
 {
-	w := new SweeperNuklear()
+	w := new SweeperNuklear(400,500,"MineSweeper")
 	w.Run()
 }
