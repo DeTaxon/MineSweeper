@@ -13,7 +13,6 @@ SweeperNuklear := class extend SimpleWindow
 	mineField := bool[81] //TODO make 9*9
 	mineFieldPressed := bool[81]
 	mineFieldWeight := int[81]
-
 	
 	InitWindow := virtual !(void^ nk) -> void
 	{
@@ -103,31 +102,46 @@ SweeperNuklear := class extend SimpleWindow
 		rect.y = 0
 		rect.w = w
 		rect.h = h
+
+		rect2 := nk_rect
+
+		boxSize := 30
+		margin := 2
+		
+		rowSize := boxSize*9 + margin*8
+		leftSize := (w - rowSize) / 2
+
 		if nk_begin(nk,"DoesNotMatter",rect,0) != 0
 		{
-			nk_layout_row_static(nk,15,30,1)
-			nk_label(nk,"",0)
-			nk_layout_row_dynamic(nk,30,1)
+			nk_style_hide_cursor(nk)
+
+			nk_layout_space_begin(nk,NK_STATIC,w,2000000)
+
+			rect2.x = leftSize
+			rect2.y = 20
+			rect2.w = rowSize
+			rect2.h = 40
+
+			nk_layout_space_push(nk,rect2)
+
 			if nk_button_label(nk,"Reset")
 			{
 				ResetField()
 			}
-			nk_layout_row_static(nk,15,30,1)
-			nk_label(nk,"",0)
-			
-			nk_layout_row_template_begin(nk,30)
-			nk_layout_row_template_push_dynamic(nk)
-			for i : 9
-				nk_layout_row_template_push_static(nk,30)
-			nk_layout_row_template_push_dynamic(nk)
-			nk_layout_row_template_end(nk)
 
-			//nk_layout_row_static(nk,30,30,9)
 			for x : 9
 			{
-				nk_label(nk,"",0)
 				for y : 9
 				{
+					rect2.x = leftSize + x*(boxSize + margin)
+					rect2.y = 80 + y*(boxSize + margin)
+					rect2.w = 30
+					rect2.h = 30
+
+					//printf("hm %f %f %f %f\n",rect2.x,rect2.y,rect2.w,rect2.h)
+
+					nk_layout_space_push(nk,rect2)
+
 					if mineFieldPressed[x+y*9]
 					{
 						if not mineField[x + y*9]
@@ -144,8 +158,8 @@ SweeperNuklear := class extend SimpleWindow
 						}
 					}
 				}
-				nk_label(nk,"",0)
 			}
+			nk_layout_space_end(nk)
 		}
 		nk_end(nk)
 	}
@@ -176,6 +190,6 @@ SweeperNuklear := class extend SimpleWindow
 
 main := !(char^[] args) -> void
 {
-	w := new SweeperNuklear(400,500,"MineSweeper")
+	w := new SweeperNuklear(400,460,"MineSweeper")
 	w.Run()
 }
