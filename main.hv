@@ -95,6 +95,8 @@ SweeperNuklear := class extend SimpleWindow
 			nke_style_button_set_color(pressedMinePlace,0,red)
 			nke_style_button_set_color(pressedMinePlace,1,red)
 			nke_style_button_set_color(pressedMinePlace,2,red)
+
+			nk_style_hide_cursor(nk)
 		}
 
 		rect := nk_rect//(10,10,100,100)
@@ -111,11 +113,10 @@ SweeperNuklear := class extend SimpleWindow
 		rowSize := boxSize*9 + margin*8
 		leftSize := (w - rowSize) / 2
 
-		if nk_begin(nk,"DoesNotMatter",rect,0) != 0
+		if nk_begin(nk,"DoesNotMatter",rect,32) != 0
 		{
-			nk_style_hide_cursor(nk)
 
-			nk_layout_space_begin(nk,NK_STATIC,w,2000000)
+			nk_layout_space_begin(nk,NK_STATIC,w,82)
 
 			rect2.x = leftSize
 			rect2.y = 20
@@ -137,8 +138,6 @@ SweeperNuklear := class extend SimpleWindow
 					rect2.y = 80 + y*(boxSize + margin)
 					rect2.w = 30
 					rect2.h = 30
-
-					//printf("hm %f %f %f %f\n",rect2.x,rect2.y,rect2.w,rect2.h)
 
 					nk_layout_space_push(nk,rect2)
 
@@ -188,8 +187,10 @@ SweeperNuklear := class extend SimpleWindow
 	}
 }
 
+
 main := !(char^[] args) -> void
 {
-	w := new SweeperNuklear(400,460,"MineSweeper")
+	w := new SweeperNuklear(400,400,"MineSweeper")
+	w.SetFPSLimit(30)
 	w.Run()
 }
