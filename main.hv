@@ -4,48 +4,67 @@
 //TODO redraw when only mouse moved?
 //TODO nk_convert have it's limits, maybe overwrite library?
 
+
+FieldBlock := class
+{
+	isMine := bool
+	isPressed := bool
+
+	"=" := default
+}
+
 SweeperNuklear := class extend SimpleWindow
 {
 	unknownPlace := void^
 	pressedPlace := void^
 	pressedMinePlace := void^
 
+
+	SizeX := int
+	SizeY := int
+
+
+	mineField := Vector.{FieldBlock}
 	mineField := bool[81] //TODO make 9*9
 	mineFieldPressed := bool[81]
-	mineFieldWeight := int[81]
 	
 	InitWindow := virtual !(void^ nk) -> void
 	{
+	}
+	InitField := !(int dimX, int dimY) -> void
+	{
+		SizeX = dimX
+		SizeY = dimY
+
+		mineField.Resize(dimX*dimY)
+
+
 		ResetField()
 	}
+	GetField := !(int X,int Y) -> ref FieldBlock
+	{
+		return mineField[X + Y*SizeX]
+	}
+
 	ResetField := !() -> void
 	{
-		for i : 81
+		for it : mineField
 		{
-			mineField[i] = false
-			mineFieldPressed[i] = false
+			it.isMine = false
+			it.isPressed = false
 		}
 
 		mines := 10
 		while mines != 0
 		{
-			x := RandInt(0..8)
-			y := RandInt(0..8)
+			x := RandInt(0..(SizeX-1))
+			y := RandInt(0..(SizeY-1))
 
-			if mineField[x + y*9]
+			if GetField(x,y).isMine
 				continue
-			mineField[x + y*9] = true
+			GetField(x,y).isMine = true
 			mines -= 1
 		}
-
-		for x : 9
-		{
-			for y : 9
-			{
-				mineFieldWeight[x+y*9] = GetSpaceWeight(x,y)
-			}
-		}
-		
 	}
 
 	GetSpaceWeight := !(int x, int y) -> int
@@ -54,14 +73,14 @@ SweeperNuklear := class extend SimpleWindow
 		for dX : diffs
 		{
 			newX := x + dX
-			if newX < 0 or newX >= 9
+			if newX < 0 or newX >= SizeX
 				continue
 			for dY : diffs
 			{
 				newY := y + dY
-				if newY < 0 or newY >= 9
+				if newY < 0 or newY >= SizeY
 					continue
-				if mineField[newX + newY*9]
+				if GetField(newX,newY).isMine
 					result += 1
 			}
 		}
@@ -130,9 +149,9 @@ SweeperNuklear := class extend SimpleWindow
 				ResetField()
 			}
 
-			for x : 9
+			for x : SizeX
 			{
-				for y : 9
+				for y : SizeY
 				{
 					rect2.x = leftSize + x*(boxSize + margin)
 					rect2.y = 80 + y*(boxSize + margin)
@@ -141,11 +160,11 @@ SweeperNuklear := class extend SimpleWindow
 
 					nk_layout_space_push(nk,rect2)
 
-					if mineFieldPressed[x+y*9]
+					if GetField(x,y).isPressed
 					{
-						if not mineField[x + y*9]
+						if not GetField(x,y).isMine
 						{
-							fVal := mineFieldWeight[x+y*9]
+							fVal := GetSpaceWeight(x,y)
 							nk_button_label_styled(nk,pressedPlace,!["","1","2","3","4","5","6","7","8","9"][fVal])
 						}else{
 							nk_button_label_styled(nk,pressedMinePlace,"")
@@ -164,9 +183,9 @@ SweeperNuklear := class extend SimpleWindow
 	}
 	PressField := !(int x, int y) -> void
 	{
-		if mineFieldPressed[x+y*9]
+		if GetField(x,y).isPressed
 			return void
-		mineFieldPressed[x+y*9] = true
+		GetField(x,y).isPressed = true
 		if GetSpaceWeight(x,y) != 0
 			return void
 
@@ -174,12 +193,12 @@ SweeperNuklear := class extend SimpleWindow
 		for dX : diffs
 		{
 			newX := x + dX
-			if newX < 0 or newX >= 9
+			if newX < 0 or newX >= SizeX
 				continue
 			for dY : diffs
 			{
 				newY := y + dY
-				if newY < 0 or newY >= 9
+				if newY < 0 or newY >= SizeY
 					continue
 				PressField(newX,newY)
 			}
@@ -191,6 +210,7 @@ SweeperNuklear := class extend SimpleWindow
 main := !(char^[] args) -> void
 {
 	w := new SweeperNuklear(400,400,"MineSweeper")
+	w.InitField(5,5)
 	w.SetFPSLimit(30)
 	w.Run()
 }
