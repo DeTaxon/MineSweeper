@@ -26,7 +26,10 @@ SweeperNuklear := class extend SimpleWindow
 
 	mineField := Vector.{FieldBlock}
 
-	testField := NuklearObject
+	mineBlank := NuklearObject
+	minePressed := NuklearObject
+	
+	nonMinePressed := NuklearObject^[9]
 	
 	InitWindow := virtual !(void^ nk) -> void
 	{
@@ -116,8 +119,18 @@ SweeperNuklear := class extend SimpleWindow
 
 			nk_style_hide_cursor(nk)
 
-			testField.Create(this&,nk,pressedMinePlace)
-			testField.drawLayout = this.drawLayout
+			mineBlank.Create(this&,nk,unknownPlace,"")
+			mineBlank.drawLayout = this.drawLayout
+
+			minePressed.Create(this&,nk,pressedMinePlace,"")
+			minePressed.drawLayout = this.drawLayout
+
+			for i : 9
+			{
+				nonMinePressed[i] = new NuklearObject
+				nonMinePressed[i].Create(this&,nk,pressedPlace,!["","1","2","3","4","5","6","7","8"][i])
+				nonMinePressed[i].drawLayout = this.drawLayout
+			}
 		}
 
 		rect := nk_rect//(10,10,100,100)
@@ -181,7 +194,6 @@ SweeperNuklear := class extend SimpleWindow
 
 	DrawVulkan := virtual !(VkCommandBuffer cmd,int w, int h) -> void
 	{
-
 		rect2 := nk_rect
 
 		boxSize := 30
@@ -199,7 +211,12 @@ SweeperNuklear := class extend SimpleWindow
 				rect2.w = 30
 				rect2.h = 30
 
-				testField.PushDraw(cmd,w,h,rect2.x,rect2.y)
+				if x == 0
+				{
+					nonMinePressed[y mod 9].PushDraw(cmd,w,h,rect2.x,rect2.y)
+				}else{
+					mineBlank.PushDraw(cmd,w,h,rect2.x,rect2.y)
+				}
 			}
 		}
 	}
