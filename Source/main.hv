@@ -8,6 +8,7 @@
 FieldBlock := class
 {
 	isMine := bool
+	isDefused := bool
 	isPressed := bool
 
 	"=" := default
@@ -18,6 +19,7 @@ SweeperNuklear := class extend SimpleWindow
 	unknownPlace := void^
 	pressedPlace := void^
 	pressedMinePlace := void^
+	pressedMineDefused := void^
 
 
 	SizeX := int
@@ -28,6 +30,7 @@ SweeperNuklear := class extend SimpleWindow
 
 	mineBlank := NuklearObject
 	minePressed := NuklearObject
+	mineDefused := NuklearObject
 	
 	nonMinePressed := NuklearObject^[9]
 	
@@ -54,9 +57,10 @@ SweeperNuklear := class extend SimpleWindow
 		{
 			it.isMine = false
 			it.isPressed = false
+			it.isDefused = false
 		}
 
-		mines := 10
+		mines := 35
 		while mines != 0
 		{
 			x := RandInt(0..(SizeX-1))
@@ -117,6 +121,17 @@ SweeperNuklear := class extend SimpleWindow
 			nke_style_button_set_color(pressedMinePlace,1,red)
 			nke_style_button_set_color(pressedMinePlace,2,red)
 
+
+			green := nk_color
+			green.g = 255
+			green.a = 255
+
+			pressedMineDefused = malloc(nke_style_button_size())
+			nke_style_button_copy_from_context(nk,pressedMineDefused)
+			nke_style_button_set_color(pressedMineDefused,0,green)
+			nke_style_button_set_color(pressedMineDefused,1,green)
+			nke_style_button_set_color(pressedMineDefused,2,green)
+
 			nk_style_hide_cursor(nk)
 
 			mineBlank.Create(this&,nk,unknownPlace,"")
@@ -124,6 +139,9 @@ SweeperNuklear := class extend SimpleWindow
 
 			minePressed.Create(this&,nk,pressedMinePlace,"")
 			minePressed.drawLayout = this.drawLayout
+
+			mineDefused.Create(this&,nk,pressedMineDefused,"")
+			mineDefused.drawLayout = this.drawLayout
 
 			for i : 9
 			{
@@ -191,6 +209,91 @@ SweeperNuklear := class extend SimpleWindow
 			}
 		}
 	}
+	PressAssist := !(int x, int y) -> void
+	{
+		if not GetField(x,y).isPressed
+			return void
+
+		unpressed := 0
+		foundMines := 0
+		totalMines := 0
+
+		diffs := ![-1,0,1]
+		for dX : diffs
+		{
+			newX := x + dX
+			if newX < 0 or newX >= SizeX
+				continue
+			for dY : diffs
+			{
+				newY := y + dY
+				if newY < 0 or newY >= SizeY
+					continue
+				if newX == x and newY == y
+					continue
+				chk := ref GetField(newX,newY)
+				if chk.isDefused
+					foundMines += 1
+				if chk.isMine
+					totalMines += 1
+				if not chk.isPressed
+					unpressed += 1
+			}
+		}
+
+		if foundMines + unpressed == totalMines
+		{
+			for dX : diffs
+			{
+				newX := x + dX
+				if newX < 0 or newX >= SizeX
+					continue
+				for dY : diffs
+				{
+					newY := y + dY
+					if newY < 0 or newY >= SizeY
+						continue
+					if newX == x and newY == y
+						continue
+					
+					PressRight(newX,newY)
+				}
+			}
+		}else if totalMines == foundMines and unpressed != 0
+		{
+			for dX : diffs
+			{
+				newX := x + dX
+				if newX < 0 or newX >= SizeX
+					continue
+				for dY : diffs
+				{
+					newY := y + dY
+					if newY < 0 or newY >= SizeY
+						continue
+					if newX == x and newY == y
+						continue
+					PressField(newX,newY)
+				}
+			}
+		}
+	}
+
+	PressRight := !(int x,int y) -> void
+	{
+		fld := ref GetField(x,y)
+		if fld.isPressed
+			return void
+
+		if fld.isMine
+		{
+			fld.isPressed = true
+			fld.isDefused = true
+		}else{
+			//printf("nah\n")
+		}
+	}
+
 
 	DrawVulkan := virtual !(VkCommandBuffer cmd,int w, int h) -> void
 	{
@@ -211,13 +314,82 @@ SweeperNuklear := class extend SimpleWindow
 				rect2.w = 30
 				rect2.h = 30
 
-				if x == 0
+				fld := GetField(x,y)
+
+				if fld.isPressed
 				{
-					nonMinePressed[y mod 9].PushDraw(cmd,w,h,rect2.x,rect2.y)
+					if fld.isMine
+					{
+						if fld.isDefused
+						{
+							mineDefused.PushDraw(cmd,w,h,rect2.x,rect2.y)
+						}else{
+							minePressed.PushDraw(cmd,w,h,rect2.x,rect2.y)
+						}
+					}else{
+						wdth := GetSpaceWeight(x,y)
+						nonMinePressed[wdth].PushDraw(cmd,w,h,rect2.x,rect2.y)
+					}
 				}else{
 					mineBlank.PushDraw(cmd,w,h,rect2.x,rect2.y)
 				}
 			}
+		}
+	}
+
+	MouseX := double
+	MouseY := double
+	MouseMoved := virtual !(double x, double y) -> void
+	{
+		MouseX = x
+		MouseY = y
+	}
+
+	KeyChanged := virtual !(int key, int scancode, bool pressed) -> void
+	{
+	}
+	M2Pressed := bool
+	MousePressed := virtual !(int buttonNum, bool pressed, int mods) -> void //if pressed is false => released
+	{
+
+		if buttonNum == 1
+			M2Pressed = pressed
+
+		if not pressed
+			return void
+
+		rect2 := nk_rect
+
+		boxSize := 30
+		margin := 2
+		
+		rowSize := boxSize*SizeX + margin*(SizeX - 1)
+		leftSize := (700 - rowSize) / 2 //TODO unconst
+
+		minX := leftSize
+		maxX := leftSize + SizeX*(boxSize + margin) - margin
+		minY := 80
+		maxY := 80 + SizeY*(boxSize + margin) - margin
+
+		if MouseX > maxX or MouseX < minX
+			return void
+		if MouseY > maxY or MouseY < minY
+			return void
+ 
+		indX := (MouseX - minX) / (30 + margin)
+		indY := (MouseY - minY) / (30 + margin)
+
+		switch buttonNum
+		{
+			case 0
+				if M2Pressed
+				{
+					PressAssist(indX,indY)
+				}else{
+					PressField(indX,indY)
+				}
+			case 1
+				PressRight(indX,indY)
 		}
 	}
 }
@@ -226,7 +398,7 @@ SweeperNuklear := class extend SimpleWindow
 main := !(char^[] args) -> void
 {
 	w := new SweeperNuklear(700,700,"MineSweeper")
-	w.InitField(9,9)
+	w.InitField(15,15)
 	w.SetFPSLimit(30)
 	w.Run()
 }
