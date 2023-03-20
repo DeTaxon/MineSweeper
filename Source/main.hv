@@ -25,8 +25,8 @@ SweeperNuklear := class extend SimpleWindow
 
 
 	mineField := Vector.{FieldBlock}
-	mineField := bool[81] //TODO make 9*9
-	mineFieldPressed := bool[81]
+
+	testField := NuklearObject
 	
 	InitWindow := virtual !(void^ nk) -> void
 	{
@@ -37,7 +37,6 @@ SweeperNuklear := class extend SimpleWindow
 		SizeY = dimY
 
 		mineField.Resize(dimX*dimY)
-
 
 		ResetField()
 	}
@@ -116,6 +115,9 @@ SweeperNuklear := class extend SimpleWindow
 			nke_style_button_set_color(pressedMinePlace,2,red)
 
 			nk_style_hide_cursor(nk)
+
+			testField.Create(this&,nk,pressedMinePlace)
+			testField.drawLayout = this.drawLayout
 		}
 
 		rect := nk_rect//(10,10,100,100)
@@ -129,13 +131,13 @@ SweeperNuklear := class extend SimpleWindow
 		boxSize := 30
 		margin := 2
 		
-		rowSize := boxSize*9 + margin*8
+		rowSize := boxSize*SizeX + margin*(SizeX - 1)
 		leftSize := (w - rowSize) / 2
 
-		if nk_begin(nk,"DoesNotMatter",rect,32) != 0
+		if nk_begin(nk,"MainWindow2",rect,32) != 0
 		{
 
-			nk_layout_space_begin(nk,NK_STATIC,w,82)
+			nk_layout_space_begin(nk,NK_STATIC,w,SizeX*SizeY + 1)
 
 			rect2.x = leftSize
 			rect2.y = 20
@@ -149,34 +151,6 @@ SweeperNuklear := class extend SimpleWindow
 				ResetField()
 			}
 
-			for x : SizeX
-			{
-				for y : SizeY
-				{
-					rect2.x = leftSize + x*(boxSize + margin)
-					rect2.y = 80 + y*(boxSize + margin)
-					rect2.w = 30
-					rect2.h = 30
-
-					nk_layout_space_push(nk,rect2)
-
-					if GetField(x,y).isPressed
-					{
-						if not GetField(x,y).isMine
-						{
-							fVal := GetSpaceWeight(x,y)
-							nk_button_label_styled(nk,pressedPlace,!["","1","2","3","4","5","6","7","8","9"][fVal])
-						}else{
-							nk_button_label_styled(nk,pressedMinePlace,"")
-						}
-					}else{
-						if nk_button_label_styled(nk,unknownPlace,"")
-						{
-							PressField(x,y)
-						}
-					}
-				}
-			}
 			nk_layout_space_end(nk)
 		}
 		nk_end(nk)
@@ -204,13 +178,38 @@ SweeperNuklear := class extend SimpleWindow
 			}
 		}
 	}
+
+	DrawVulkan := virtual !(VkCommandBuffer cmd,int w, int h) -> void
+	{
+
+		rect2 := nk_rect
+
+		boxSize := 30
+		margin := 2
+		
+		rowSize := boxSize*SizeX + margin*(SizeX - 1)
+		leftSize := (w - rowSize) / 2
+		
+		for x : SizeX
+		{
+			for y : SizeY
+			{
+				rect2.x = leftSize + x*(boxSize + margin)
+				rect2.y = 80 + y*(boxSize + margin)
+				rect2.w = 30
+				rect2.h = 30
+
+				testField.PushDraw(cmd,w,h,rect2.x,rect2.y)
+			}
+		}
+	}
 }
 
 
 main := !(char^[] args) -> void
 {
-	w := new SweeperNuklear(400,400,"MineSweeper")
-	w.InitField(5,5)
+	w := new SweeperNuklear(700,700,"MineSweeper")
+	w.InitField(9,9)
 	w.SetFPSLimit(30)
 	w.Run()
 }
