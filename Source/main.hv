@@ -31,6 +31,8 @@ SweeperNuklear := class extend SimpleWindow
 	mineBlank := NuklearObject
 	minePressed := NuklearObject
 	mineDefused := NuklearObject
+
+	backgroundWindow := NuklearObject
 	
 	nonMinePressed := NuklearObject^[9]
 	
@@ -75,20 +77,10 @@ SweeperNuklear := class extend SimpleWindow
 
 	GetSpaceWeight := !(int x, int y) -> int
 	{
-		diffs := ![-1,0,1]
-		for dX : diffs
+		for it : ForAround(x,y,true)
 		{
-			newX := x + dX
-			if newX < 0 or newX >= SizeX
-				continue
-			for dY : diffs
-			{
-				newY := y + dY
-				if newY < 0 or newY >= SizeY
-					continue
-				if GetField(newX,newY).isMine
-					result += 1
-			}
+			if GetField(it.0,it.1).isMine
+				result += 1
 		}
 	}
 	DrawCode := virtual !(void^ nk,int w, int h) -> void
@@ -134,57 +126,25 @@ SweeperNuklear := class extend SimpleWindow
 
 			nk_style_hide_cursor(nk)
 
-			mineBlank.Create(this&,nk,unknownPlace,"")
+			mineBlank.Create(vInstance,nk,unknownPlace,"")
 			mineBlank.drawLayout = this.drawLayout
 
-			minePressed.Create(this&,nk,pressedMinePlace,"")
+			minePressed.Create(vInstance,nk,pressedMinePlace,"")
 			minePressed.drawLayout = this.drawLayout
 
-			mineDefused.Create(this&,nk,pressedMineDefused,"")
+			mineDefused.Create(vInstance,nk,pressedMineDefused,"")
 			mineDefused.drawLayout = this.drawLayout
 
 			for i : 9
 			{
 				nonMinePressed[i] = new NuklearObject
-				nonMinePressed[i].Create(this&,nk,pressedPlace,!["","1","2","3","4","5","6","7","8"][i])
+				nonMinePressed[i].Create(vInstance,nk,pressedPlace,!["","1","2","3","4","5","6","7","8"][i])
 				nonMinePressed[i].drawLayout = this.drawLayout
 			}
+
+			backgroundWindow.CreateWindow(vInstance,nk,w,h)
+			backgroundWindow.drawLayout = this.drawLayout
 		}
-
-		rect := nk_rect//(10,10,100,100)
-		rect.x = 0
-		rect.y = 0
-		rect.w = w
-		rect.h = h
-
-		rect2 := nk_rect
-
-		boxSize := 30
-		margin := 2
-		
-		rowSize := boxSize*SizeX + margin*(SizeX - 1)
-		leftSize := (w - rowSize) / 2
-
-		if nk_begin(nk,"MainWindow2",rect,32) != 0
-		{
-
-			nk_layout_space_begin(nk,NK_STATIC,w,SizeX*SizeY + 1)
-
-			rect2.x = leftSize
-			rect2.y = 20
-			rect2.w = rowSize
-			rect2.h = 40
-
-			nk_layout_space_push(nk,rect2)
-
-			if nk_button_label(nk,"Reset")
-			{
-				ResetField()
-			}
-
-			nk_layout_space_end(nk)
-		}
-		nk_end(nk)
 	}
 	PressField := !(int x, int y) -> void
 	{
@@ -194,20 +154,25 @@ SweeperNuklear := class extend SimpleWindow
 		if GetSpaceWeight(x,y) != 0
 			return void
 
-		diffs := ![-1,0,1]
-		for dX : diffs
+		
+		for it : ForAround(x,y)
 		{
-			newX := x + dX
-			if newX < 0 or newX >= SizeX
-				continue
-			for dY : diffs
-			{
-				newY := y + dY
-				if newY < 0 or newY >= SizeY
-					continue
-				PressField(newX,newY)
-			}
+			PressField(it.0,it.1)
 		}
+		//diffs := ![-1,0,1]
+		//for dX : diffs
+		//{
+		//	newX := x + dX
+		//	if newX < 0 or newX >= SizeX
+		//		continue
+		//	for dY : diffs
+		//	{
+		//		newY := y + dY
+		//		if newY < 0 or newY >= SizeY
+		//			continue
+		//		PressField(newX,newY)
+		//	}
+		//}
 	}
 	PressAssist := !(int x, int y) -> void
 	{
@@ -218,63 +183,28 @@ SweeperNuklear := class extend SimpleWindow
 		foundMines := 0
 		totalMines := 0
 
-		diffs := ![-1,0,1]
-		for dX : diffs
+		for it : ForAround(x,y)
 		{
-			newX := x + dX
-			if newX < 0 or newX >= SizeX
-				continue
-			for dY : diffs
-			{
-				newY := y + dY
-				if newY < 0 or newY >= SizeY
-					continue
-				if newX == x and newY == y
-					continue
-				chk := ref GetField(newX,newY)
-				if chk.isDefused
-					foundMines += 1
-				if chk.isMine
-					totalMines += 1
-				if not chk.isPressed
-					unpressed += 1
-			}
+			chk := ref GetField(it.0,it.1)
+			if chk.isDefused
+				foundMines += 1
+			if chk.isMine
+				totalMines += 1
+			if not chk.isPressed
+				unpressed += 1
 		}
 
 		if foundMines + unpressed == totalMines
 		{
-			for dX : diffs
+			for it : ForAround(x,y)
 			{
-				newX := x + dX
-				if newX < 0 or newX >= SizeX
-					continue
-				for dY : diffs
-				{
-					newY := y + dY
-					if newY < 0 or newY >= SizeY
-						continue
-					if newX == x and newY == y
-						continue
-					
-					PressRight(newX,newY)
-				}
+				PressRight(it.0,it.1)
 			}
 		}else if totalMines == foundMines and unpressed != 0
 		{
-			for dX : diffs
+			for it : ForAround(x,y)
 			{
-				newX := x + dX
-				if newX < 0 or newX >= SizeX
-					continue
-				for dY : diffs
-				{
-					newY := y + dY
-					if newY < 0 or newY >= SizeY
-						continue
-					if newX == x and newY == y
-						continue
-					PressField(newX,newY)
-				}
+				PressField(it.0,it.1)
 			}
 		}
 	}
@@ -297,6 +227,8 @@ SweeperNuklear := class extend SimpleWindow
 
 	DrawVulkan := virtual !(VkCommandBuffer cmd,int w, int h) -> void
 	{
+
+		backgroundWindow.PushDraw(cmd,w,h,0,0)
 		rect2 := nk_rect
 
 		boxSize := 30
@@ -337,24 +269,15 @@ SweeperNuklear := class extend SimpleWindow
 		}
 	}
 
-	MouseX := double
-	MouseY := double
 	MouseMoved := virtual !(double x, double y) -> void
 	{
-		MouseX = x
-		MouseY = y
 	}
 
 	KeyChanged := virtual !(int key, int scancode, bool pressed) -> void
 	{
 	}
-	M2Pressed := bool
 	MousePressed := virtual !(int buttonNum, bool pressed, int mods) -> void //if pressed is false => released
 	{
-
-		if buttonNum == 1
-			M2Pressed = pressed
-
 		if not pressed
 			return void
 
@@ -391,6 +314,48 @@ SweeperNuklear := class extend SimpleWindow
 			case 1
 				PressRight(indX,indY)
 		}
+	}
+
+	ForAround := !(int x, int y,bool useMiddle = false) -> ProxyForSweeper
+	{
+		result.base = this&
+		result.dimX = x
+		result.dimY = y
+		result.useMiddle = useMiddle
+	}
+}
+
+ProxyForSweeper := class
+{
+	base := SweeperNuklear^
+	dimX := int
+	dimY := int
+	useMiddle := bool
+
+	"for" := !() -> !()&-> Tuple.{int,int}
+	{
+		lambd := () ==> Tuple.{int,int}
+		{
+			diffs := ![-1,0,1]
+			for dX : diffs
+			{
+				newX := dimX + dX
+				if newX < 0 or newX >= base.SizeX
+					continue
+				for dY : diffs
+				{
+					if dX == 0 and dY == 0 and not useMiddle
+						continue
+					newY := dimY + dY
+					if newY < 0 or newY >= base.SizeY
+						continue
+
+					yield !{newX,newY}
+				}
+			}
+			
+		}
+		return lambd.Capture()
 	}
 }
 
