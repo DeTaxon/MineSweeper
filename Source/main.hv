@@ -37,6 +37,8 @@ SweeperNuklear := class extend SimpleWindow
 	nonMinePressed := NuklearObject^[9]
 
 	resetButton := NuklearObject
+
+	firstPress := bool
 	
 	InitWindow := virtual !(void^ nk) -> void
 	{
@@ -57,6 +59,7 @@ SweeperNuklear := class extend SimpleWindow
 
 	ResetField := !() -> void
 	{
+		firstPress = true
 		for it : mineField
 		{
 			it.isMine = false
@@ -169,18 +172,18 @@ SweeperNuklear := class extend SimpleWindow
 			resetButton.drawLayout = this.drawLayout
 		}
 	}
-	PressField := !(int x, int y) -> void
+	PressField := !(int x, int y) -> int
 	{
 		if GetField(x,y).isPressed
-			return void
+			return 0
 		GetField(x,y).isPressed = true
 		if GetSpaceWeight(x,y) != 0
-			return void
+			return 1
 
-		
+		result = 1
 		for it : ForAround(x,y)
 		{
-			PressField(it.0,it.1)
+			result += PressField(it.0,it.1)
 		}
 	}
 	PressAssist := !(int x, int y) -> void
@@ -333,7 +336,16 @@ SweeperNuklear := class extend SimpleWindow
 				{
 					PressAssist(indX,indY)
 				}else{
-					PressField(indX,indY)
+					if firstPress
+					{
+						while PressField(indX,indY) < 10
+						{
+							ResetField()
+						}
+						firstPress = false
+					}else{
+						PressField(indX,indY)
+					}
 				}
 			case 1
 				PressRight(indX,indY)
