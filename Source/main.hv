@@ -35,6 +35,8 @@ SweeperNuklear := class extend SimpleWindow
 	backgroundWindow := NuklearObject
 	
 	nonMinePressed := NuklearObject^[9]
+
+	resetButton := NuklearObject
 	
 	InitWindow := virtual !(void^ nk) -> void
 	{
@@ -144,6 +146,27 @@ SweeperNuklear := class extend SimpleWindow
 
 			backgroundWindow.CreateWindow(vInstance,nk,w,h)
 			backgroundWindow.drawLayout = this.drawLayout
+
+			boxSize := 30
+			margin := 2
+			
+			rowSize := boxSize*SizeX + margin*(SizeX - 1)
+			leftSize := (700 - rowSize) / 2 //TODO unconst
+
+			resetButton.Create(vInstance,nk,rowSize,40,() ==> {
+
+				rect2 := nk_rect
+				rect2.x = 200
+				rect2.y = 200
+				rect2.w = rowSize
+				rect2.h = 40
+				
+				nk_layout_space_begin(nk,NK_STATIC,rect2.w,100)
+				nk_layout_space_push(nk,rect2)
+				nk_button_label_styled(nk,unknownPlace,"Reset")
+				nk_layout_space_end(nk)
+			})
+			resetButton.drawLayout = this.drawLayout
 		}
 	}
 	PressField := !(int x, int y) -> void
@@ -159,20 +182,6 @@ SweeperNuklear := class extend SimpleWindow
 		{
 			PressField(it.0,it.1)
 		}
-		//diffs := ![-1,0,1]
-		//for dX : diffs
-		//{
-		//	newX := x + dX
-		//	if newX < 0 or newX >= SizeX
-		//		continue
-		//	for dY : diffs
-		//	{
-		//		newY := y + dY
-		//		if newY < 0 or newY >= SizeY
-		//			continue
-		//		PressField(newX,newY)
-		//	}
-		//}
 	}
 	PressAssist := !(int x, int y) -> void
 	{
@@ -229,6 +238,8 @@ SweeperNuklear := class extend SimpleWindow
 	{
 
 		backgroundWindow.PushDraw(cmd,w,h,0,0)
+
+
 		rect2 := nk_rect
 
 		boxSize := 30
@@ -236,6 +247,8 @@ SweeperNuklear := class extend SimpleWindow
 		
 		rowSize := boxSize*SizeX + margin*(SizeX - 1)
 		leftSize := (w - rowSize) / 2
+
+		resetButton.PushDraw(cmd,w,h,leftSize,20)
 		
 		for x : SizeX
 		{
@@ -294,8 +307,19 @@ SweeperNuklear := class extend SimpleWindow
 		minY := 80
 		maxY := 80 + SizeY*(boxSize + margin) - margin
 
+
 		if MouseX > maxX or MouseX < minX
 			return void
+
+		if pressed and buttonNum == 0
+		{
+			if MouseY >= 20 and MouseY <= 60
+			{
+				ResetField()
+				return void
+			}
+		}
+
 		if MouseY > maxY or MouseY < minY
 			return void
  
