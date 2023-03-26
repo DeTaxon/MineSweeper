@@ -32,7 +32,7 @@ SweeperNuklear := class extend SimpleWindow
 
 	firstPress := bool
 
-	lay := LayoutVertical^
+	lay := LayoutBase^
 	mineFieldView := MineField^
 	
 	InitWindow := virtual !(void^ nk) -> void
@@ -149,11 +149,15 @@ SweeperNuklear := class extend SimpleWindow
 
 			resetButton := new Button(0,40,"Reset")
 			resetButton.drawLayout = this.drawLayout
-			lay = new LayoutVertical(![
-				new LayoutSpacer("static",20),
-				resetButton,
-				new LayoutSpacer("static",20),
-				mineFieldView
+			lay = new LayoutHorizontal(![
+				new LayoutSpacer("",0),
+				new LayoutVertical(![
+					new LayoutSpacer("static",20),
+					resetButton,
+					new LayoutSpacer("static",20),
+					mineFieldView
+				]),
+				new LayoutSpacer("",0)
 			])
 
 			resetButton.SetPressCallback(() ==> {
