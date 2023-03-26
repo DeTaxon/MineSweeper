@@ -159,6 +159,7 @@ SweeperNuklear := class extend SimpleWindow
 			resetButton.SetPressCallback(() ==> {
 				ResetField()
 			})
+			lay.GetLayout()
 			lay.SetLayout(nuklearContext,vec2f(w,h))
 		}
 	}
