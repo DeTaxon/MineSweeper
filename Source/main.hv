@@ -30,11 +30,10 @@ SweeperNuklear := class extend SimpleWindow
 	
 	nonMinePressed := NuklearObject^[9]
 
-	resetButton := NuklearObject
-
 	firstPress := bool
 
 	lay := LayoutVertical^
+	mineFieldView := MineField^
 	
 	InitWindow := virtual !(void^ nk) -> void
 	{
@@ -146,32 +145,15 @@ SweeperNuklear := class extend SimpleWindow
 			backgroundWindow.CreateWindow(vInstance,nk,w,h)
 			backgroundWindow.drawLayout = this.drawLayout
 
-			boxSize := 30
-			margin := 2
-			
-			rowSize := boxSize*SizeX + margin*(SizeX - 1)
-			leftSize := (700 - rowSize) / 2 //TODO unconst
-
-			resetButton.Create(vInstance,nk,rowSize,40,() ==> {
-
-				rect2 := nk_rect
-				rect2.x = 200
-				rect2.y = 200
-				rect2.w = rowSize
-				rect2.h = 40
-				
-				nk_layout_space_begin(nk,NK_STATIC,rect2.w,100)
-				nk_layout_space_push(nk,rect2)
-				nk_button_label_styled(nk,unknownPlace,"Reset")
-				nk_layout_space_end(nk)
-			})
-			resetButton.drawLayout = this.drawLayout
+			mineFieldView = new MineField(this&,15,15)
 
 			resetButton := new Button(0,40,"Reset")
 			resetButton.drawLayout = this.drawLayout
 			lay = new LayoutVertical(![
 				new LayoutSpacer("static",20),
-				resetButton
+				resetButton,
+				new LayoutSpacer("static",20),
+				mineFieldView
 			])
 
 			resetButton.SetPressCallback(() ==> {
@@ -248,117 +230,14 @@ SweeperNuklear := class extend SimpleWindow
 	DrawVulkan := virtual !(VkCommandBuffer cmd,int w, int h) -> void
 	{
 		backgroundWindow.PushDraw(cmd,w,h,vec2f(0,0))
-
 		lay.PushDraw(cmd,w,h,vec2f(0,0))
-
-		rect2 := nk_rect
-
-		boxSize := 30
-		margin := 2
-		
-		rowSize := boxSize*SizeX + margin*(SizeX - 1)
-		leftSize := (w - rowSize) / 2
-
-		//resetButton.PushDraw(cmd,w,h,leftSize,20)
-		
-		for x : SizeX
-		{
-			for y : SizeY
-			{
-				rect2.x = leftSize + x*(boxSize + margin)
-				rect2.y = 80 + y*(boxSize + margin)
-				rect2.w = 30
-				rect2.h = 30
-
-				fld := GetField(x,y)
-
-				if fld.isPressed
-				{
-					if fld.isMine
-					{
-						if fld.isDefused
-						{
-							mineDefused.PushDraw(cmd,w,h,vec2f(rect2.x,rect2.y))
-						}else{
-							minePressed.PushDraw(cmd,w,h,vec2f(rect2.x,rect2.y))
-						}
-					}else{
-						wdth := GetSpaceWeight(x,y)
-						nonMinePressed[wdth].PushDraw(cmd,w,h,vec2f(rect2.x,rect2.y))
-					}
-				}else{
-					mineBlank.PushDraw(cmd,w,h,vec2f(rect2.x,rect2.y))
-				}
-			}
-		}
 	}
 
-	MouseMoved := virtual !(double x, double y) -> void
-	{
-	}
-
-	KeyChanged := virtual !(int key, int scancode, bool pressed) -> void
-	{
-	}
 	MousePressed := virtual !(int buttonNum, bool pressed, int mods) -> void //if pressed is false => released
 	{
 		if not pressed
 			return void
 		lay.MousePressed(buttonNum,pressed,vec2f(MouseX,MouseY))
-
-		rect2 := nk_rect
-
-		boxSize := 30
-		margin := 2
-		
-		rowSize := boxSize*SizeX + margin*(SizeX - 1)
-		leftSize := (700 - rowSize) / 2 //TODO unconst
-
-		minX := leftSize
-		maxX := leftSize + SizeX*(boxSize + margin) - margin
-		minY := 80
-		maxY := 80 + SizeY*(boxSize + margin) - margin
-
-
-		if MouseX > maxX or MouseX < minX
-			return void
-
-		//if pressed and buttonNum == 0
-		//{
-		//	if MouseY >= 20 and MouseY <= 60
-		//	{
-		//		ResetField()
-		//		return void
-		//	}
-		//}
-
-		if MouseY > maxY or MouseY < minY
-			return void
- 
-		indX := (MouseX - minX) / (30 + margin)
-		indY := (MouseY - minY) / (30 + margin)
-
-		switch buttonNum
-		{
-			case 0
-				if M2Pressed
-				{
-					PressAssist(indX,indY)
-				}else{
-					if firstPress
-					{
-						while PressField(indX,indY) < 10
-						{
-							ResetField()
-						}
-						firstPress = false
-					}else{
-						PressField(indX,indY)
-					}
-				}
-			case 1
-				PressRight(indX,indY)
-		}
 	}
 
 	ForAround := !(int x, int y,bool useMiddle = false) -> ProxyForSweeper

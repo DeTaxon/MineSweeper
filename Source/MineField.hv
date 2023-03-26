@@ -1,0 +1,76 @@
+MineField := class extend GUIObject
+{
+	boxSize := float
+	margin := float
+
+	base := SweeperNuklear^
+	this := !(SweeperNuklear^ bck,int x, int y) -> void
+	{
+		base = bck
+		boxSize = 30.0
+		margin = 2.0
+
+		SetSize("static",boxSize*x + margin*(x - 1), "static", boxSize*y + margin*(y - 1))
+	}
+	PushDraw := virtual !(VkCommandBuffer cmdB,int w,int h,vec2f offset) -> void
+	{
+		rect2 := nk_rect
+		for x : base.SizeX
+		{
+			for y : base.SizeY
+			{
+				rect2.x = offset.x + x*(boxSize + margin)
+				rect2.y = offset.y + y*(boxSize + margin)
+				rect2.w = boxSize
+				rect2.h = boxSize
+
+				fld := base.GetField(x,y)
+
+				if fld.isPressed
+				{
+					if fld.isMine
+					{
+						if fld.isDefused
+						{
+							base.mineDefused.PushDraw(cmdB,w,h,vec2f(rect2.x,rect2.y))
+						}else{
+							base.minePressed.PushDraw(cmdB,w,h,vec2f(rect2.x,rect2.y))
+						}
+					}else{
+						wdth := base.GetSpaceWeight(x,y)
+						base.nonMinePressed[wdth].PushDraw(cmdB,w,h,vec2f(rect2.x,rect2.y))
+					}
+				}else{
+					base.mineBlank.PushDraw(cmdB,w,h,vec2f(rect2.x,rect2.y))
+				}
+			}
+		}
+	}
+	MousePressed := virtual !(int buttonNum, bool pressed,vec2f offset) -> void
+	{
+		indX := offset.x / (boxSize + margin)
+		indY := offset.y / (boxSize + margin)
+
+		switch buttonNum
+		{
+			case 0
+				if base.M2Pressed
+				{
+					base.PressAssist(indX,indY)
+				}else{
+					if base.firstPress
+					{
+						while base.PressField(indX,indY) < 10
+						{
+							base.ResetField()
+						}
+						base.firstPress = false
+					}else{
+						base.PressField(indX,indY)
+					}
+				}
+			case 1
+				base.PressRight(indX,indY)
+		}
+	}
+}
