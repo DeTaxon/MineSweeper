@@ -1,8 +1,4 @@
-//TODO windows support
-//TODO make video card selector, it force
-//TODO check what couse memory overuse
-//TODO redraw when only mouse moved?
-//TODO nk_convert have it's limits, maybe overwrite library?
+//TODO check what cause memory overuse
 
 
 FieldBlock := class
@@ -21,10 +17,8 @@ SweeperNuklear := class extend SimpleWindow
 	pressedMinePlace := void^
 	pressedMineDefused := void^
 
-
 	SizeX := int
 	SizeY := int
-
 
 	mineField := Vector.{FieldBlock}
 
@@ -39,6 +33,8 @@ SweeperNuklear := class extend SimpleWindow
 	resetButton := NuklearObject
 
 	firstPress := bool
+
+	lay := LayoutVertical^
 	
 	InitWindow := virtual !(void^ nk) -> void
 	{
@@ -170,6 +166,18 @@ SweeperNuklear := class extend SimpleWindow
 				nk_layout_space_end(nk)
 			})
 			resetButton.drawLayout = this.drawLayout
+
+			resetButton := new Button(0,40,"Reset")
+			resetButton.drawLayout = this.drawLayout
+			lay = new LayoutVertical(![
+				new LayoutSpacer("static",20),
+				resetButton
+			])
+
+			resetButton.SetPressCallback(() ==> {
+				ResetField()
+			})
+			lay.SetLayout(nuklearContext,vec2f(w,h))
 		}
 	}
 	PressField := !(int x, int y) -> int
@@ -239,9 +247,9 @@ SweeperNuklear := class extend SimpleWindow
 
 	DrawVulkan := virtual !(VkCommandBuffer cmd,int w, int h) -> void
 	{
+		backgroundWindow.PushDraw(cmd,w,h,vec2f(0,0))
 
-		backgroundWindow.PushDraw(cmd,w,h,0,0)
-
+		lay.PushDraw(cmd,w,h,vec2f(0,0))
 
 		rect2 := nk_rect
 
@@ -251,7 +259,7 @@ SweeperNuklear := class extend SimpleWindow
 		rowSize := boxSize*SizeX + margin*(SizeX - 1)
 		leftSize := (w - rowSize) / 2
 
-		resetButton.PushDraw(cmd,w,h,leftSize,20)
+		//resetButton.PushDraw(cmd,w,h,leftSize,20)
 		
 		for x : SizeX
 		{
@@ -270,16 +278,16 @@ SweeperNuklear := class extend SimpleWindow
 					{
 						if fld.isDefused
 						{
-							mineDefused.PushDraw(cmd,w,h,rect2.x,rect2.y)
+							mineDefused.PushDraw(cmd,w,h,vec2f(rect2.x,rect2.y))
 						}else{
-							minePressed.PushDraw(cmd,w,h,rect2.x,rect2.y)
+							minePressed.PushDraw(cmd,w,h,vec2f(rect2.x,rect2.y))
 						}
 					}else{
 						wdth := GetSpaceWeight(x,y)
-						nonMinePressed[wdth].PushDraw(cmd,w,h,rect2.x,rect2.y)
+						nonMinePressed[wdth].PushDraw(cmd,w,h,vec2f(rect2.x,rect2.y))
 					}
 				}else{
-					mineBlank.PushDraw(cmd,w,h,rect2.x,rect2.y)
+					mineBlank.PushDraw(cmd,w,h,vec2f(rect2.x,rect2.y))
 				}
 			}
 		}
@@ -296,6 +304,7 @@ SweeperNuklear := class extend SimpleWindow
 	{
 		if not pressed
 			return void
+		lay.MousePressed(buttonNum,pressed,vec2f(MouseX,MouseY))
 
 		rect2 := nk_rect
 
@@ -314,14 +323,14 @@ SweeperNuklear := class extend SimpleWindow
 		if MouseX > maxX or MouseX < minX
 			return void
 
-		if pressed and buttonNum == 0
-		{
-			if MouseY >= 20 and MouseY <= 60
-			{
-				ResetField()
-				return void
-			}
-		}
+		//if pressed and buttonNum == 0
+		//{
+		//	if MouseY >= 20 and MouseY <= 60
+		//	{
+		//		ResetField()
+		//		return void
+		//	}
+		//}
 
 		if MouseY > maxY or MouseY < minY
 			return void
