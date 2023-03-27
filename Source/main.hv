@@ -142,7 +142,7 @@ SweeperNuklear := class extend SimpleWindow
 				nonMinePressed[i].drawLayout = this.drawLayout
 			}
 
-			backgroundWindow.CreateWindow(vInstance,nk,w,h)
+			backgroundWindow.CreateWindow(vInstance,nk,10000,10000)
 			backgroundWindow.drawLayout = this.drawLayout
 
 			mineFieldView = new MineField(this&,15,15)
@@ -232,8 +232,17 @@ SweeperNuklear := class extend SimpleWindow
 	}
 
 
+	oldW := int
+	oldH := int
 	DrawVulkan := virtual !(VkCommandBuffer cmd,int w, int h) -> void
 	{
+		if oldW != w or oldH != h
+		{
+			lay.GetLayout()
+			lay.SetLayout(nuklearContext,vec2f(w,h))
+			oldW = w
+			oldH = h
+		}
 		backgroundWindow.PushDraw(cmd,w,h,vec2f(0,0))
 		lay.PushDraw(cmd,w,h,vec2f(0,0))
 	}
