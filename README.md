@@ -7,3 +7,5 @@ Known problems:
 No victory/lose screen.
 There is no punishment for incorrect right click guess.
 You can't change field size.
+
+![My_Image](Preview.png)
