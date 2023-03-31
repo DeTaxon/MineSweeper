@@ -8,4 +8,6 @@ No victory/lose screen.
 There is no punishment for incorrect right click guess.
 You can't change field size.
 
-![My_Image](Preview.png)
+<p align="center"
+  <img src="https://github.com/DeTaxon/MineSweeper/blob/main/Preview.png?raw=true" alt="hello =)"/>
+</p>
