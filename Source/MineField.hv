@@ -4,6 +4,12 @@ MineField := class extend GUIObject
 	margin := float
 
 	base := SweeperNuklear^
+
+	mineBlank := NkButton^
+	minePressed := NkButton^
+	mineDefused := NkButton^
+	nonMinePressed := NkButton^[9]
+
 	this := !(SweeperNuklear^ bck,int x, int y) -> void
 	{
 		base = bck
@@ -32,19 +38,50 @@ MineField := class extend GUIObject
 					{
 						if fld.isDefused
 						{
-							base.mineDefused.PushDraw(cmdB,w,h,vec2f(rect2.x,rect2.y))
+							mineDefused.drawLayout = this.drawLayout
+							mineDefused.PushDraw(cmdB,w,h,vec2f(rect2.x,rect2.y))
 						}else{
-							base.minePressed.PushDraw(cmdB,w,h,vec2f(rect2.x,rect2.y))
+							minePressed.drawLayout = this.drawLayout
+							minePressed.PushDraw(cmdB,w,h,vec2f(rect2.x,rect2.y))
 						}
 					}else{
 						wdth := base.GetSpaceWeight(x,y)
-						base.nonMinePressed[wdth].PushDraw(cmdB,w,h,vec2f(rect2.x,rect2.y))
+						nonMinePressed[wdth].drawLayout = this.drawLayout
+						nonMinePressed[wdth].PushDraw(cmdB,w,h,vec2f(rect2.x,rect2.y))
 					}
 				}else{
-					base.mineBlank.PushDraw(cmdB,w,h,vec2f(rect2.x,rect2.y))
+					mineBlank.drawLayout = this.drawLayout
+					mineBlank.PushDraw(cmdB,w,h,vec2f(rect2.x,rect2.y))
 				}
 			}
 		}
+	}
+
+	SetLayout := virtual !(NuklearVulkanContext^ ctx,vec2f setSize) -> void
+	{
+		super(ctx,setSize)
+		if mineBlank == null
+		{
+			mineBlank = new NkButton(base.nuklearContext,30,30,"")
+			mineBlank.SetLayout(ctx,vec2f(30,30))
+
+			minePressed = new NkButton(base.nuklearContext,30,30,"")
+			minePressed.SetColor("normal",255,0,0)
+			minePressed.SetLayout(ctx,vec2f(30,30))
+
+			mineDefused = new NkButton(base.nuklearContext,30,30,"")
+			mineDefused.SetColor("normal",0,255,0)
+			mineDefused.SetLayout(ctx,vec2f(30,30))
+
+			numbers := !["","1","2","3","4","5","6","7","8"]
+			for i : 9
+			{
+				nonMinePressed[i] = new NkButton(base.nuklearContext,30,30,numbers[i])
+				nonMinePressed[i].SetColor("normal",128,128,128)
+				nonMinePressed[i].SetLayout(ctx,vec2f(30,30))
+			}
+		}
+
 	}
 	MousePressed := virtual !(int buttonNum, bool pressed,vec2f offset) -> void
 	{
