@@ -85,6 +85,9 @@ MineField := class extend GUIObject
 	}
 	MousePressed := virtual !(int buttonNum, bool pressed,vec2f offset) -> void
 	{
+		if not pressed
+			return void
+
 		indX := offset.x / (boxSize + margin)
 		indY := offset.y / (boxSize + margin)
 

@@ -94,9 +94,6 @@ SweeperNuklear := class extend SimpleWindow
 				result += 1
 		}
 	}
-	DrawCode := virtual !(void^ nk,int w, int h) -> void
-	{
-	}
 	PressField := !(int x, int y) -> int
 	{
 		if GetField(x,y).isPressed
@@ -117,7 +114,7 @@ SweeperNuklear := class extend SimpleWindow
 
 		if not itField.isPressed
 			return void
-		if itField.isDefused
+		if itField.isMine
 			return void
 
 		unpressed := 0
@@ -163,12 +160,6 @@ SweeperNuklear := class extend SimpleWindow
 		}else{
 			//printf("nah\n")
 		}
-	}
-
-
-	DrawVulkan := virtual !(VkCommandBuffer cmd,int w, int h) -> void
-	{
-		//backgroundWindow.PushDraw(cmd,w,h,vec2f(0,0))
 	}
 
 	ForAround := !(int x, int y,bool useMiddle = false) -> ProxyForSweeper
@@ -217,8 +208,9 @@ ProxyForSweeper := class
 
 main := !(char^[] args) -> void
 {
+	tracy_init()
 	w := new SweeperNuklear(700,700,"MineSweeper")
 	w.InitField(15,15)
-	w.SetFPSLimit(30)
+	//w.SetFPSLimit(30)
 	w.Run()
 }
