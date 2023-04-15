@@ -1,3 +1,10 @@
+meshData := class
+{
+	pos := float[2]
+	uv := float[2]
+	color := u8[4]
+}
+
 MineField := class extend GUIObject
 {
 	boxSize := float
@@ -10,6 +17,18 @@ MineField := class extend GUIObject
 	mineDefused := NkButton^
 	nonMinePressed := NkButton^[9]
 
+	quadMesh := TVkMesh^
+	quadSmallMesh := TVkMesh^
+
+
+	tilesPool := TDescriptorPool^ 
+
+	flagTile := Tile
+	bombTile := Tile
+	backgroundTile := Tile
+	blankTiles := Tile[2]
+	numbersTile := Tile[10]
+
 	this := !(SweeperNuklear^ bck,int x, int y) -> void
 	{
 		base = bck
@@ -17,6 +36,46 @@ MineField := class extend GUIObject
 		margin = 2.0
 
 		SetSize("static",boxSize*x + margin*(x - 1), "static", boxSize*y + margin*(y - 1))
+
+		tilesPool := base.drawLayout.CreateDescriptorPool(0,20)
+
+		verts := meshData[4]
+
+		for it,i : ![!{0.0,0.0} ,!{1.0,0.0} ,!{0.0,1.0} ,!{1.0,1.0}]
+		{
+			verts[i].pos[0] = 30.0*it.0
+			verts[i].pos[1] = 30.0*it.1
+			verts[i].uv[0] = it.0
+			verts[i].uv[1] = it.1
+			verts[i].color[0] = 255
+			verts[i].color[1] = 255
+			verts[i].color[2] = 255
+			verts[i].color[3] = 255
+		}
+		inds := ref ![0,1,2,1,3,2]
+
+		quadMesh = base.vInstance.CreateMesh(TArraySpan.{u8}(verts[0]&->{u8^},4*meshData->TypeSize),TArraySpan.{u8}(inds[0]&->{u8^},6*4),VKType(VType_UInt32,1))
+
+		smallSide := 0.15
+		bigSide := 0.85
+		for it,i : ![!{smallSide,smallSide} ,!{bigSide,smallSide} ,!{smallSide,bigSide} ,!{bigSide,bigSide}]
+		{
+			verts[i].pos[0] = 30.0*it.0
+			verts[i].pos[1] = 30.0*it.1
+		}
+		quadSmallMesh = base.vInstance.CreateMesh(TArraySpan.{u8}(verts[0]&->{u8^},4*meshData->TypeSize),TArraySpan.{u8}(inds[0]&->{u8^},6*4),VKType(VType_UInt32,1))
+
+		flagTile.Create(base,tilesPool,FSGetFile("Textures/Flag.webp"))
+		bombTile.Create(base,tilesPool,FSGetFile("Textures/Bomb.webp"))
+		backgroundTile.Create(base,tilesPool,FSGetFile("Textures/Background.webp"))
+		blankTiles[0].Create(base,tilesPool,FSGetFile("Textures/Tile1.webp"))
+		blankTiles[1].Create(base,tilesPool,FSGetFile("Textures/Tile2.webp"))
+		
+		for i : 1..8
+		{
+			numbersTile[i].Create(base,tilesPool,FSGetFile(CreateString("Textures/",i,".webp")))
+		}
+
 	}
 	PushDraw := virtual !(VkCommandBuffer cmdB,int w,int h,vec2f offset) -> void
 	{
@@ -38,8 +97,8 @@ MineField := class extend GUIObject
 					{
 						if fld.isDefused
 						{
-							mineDefused.drawLayout = this.drawLayout
-							mineDefused.PushDraw(cmdB,w,h,vec2f(rect2.x,rect2.y))
+							//mineDefused.drawLayout = this.drawLayout
+							//mineDefused.PushDraw(cmdB,w,h,vec2f(rect2.x,rect2.y))
 						}else{
 							minePressed.drawLayout = this.drawLayout
 							minePressed.PushDraw(cmdB,w,h,vec2f(rect2.x,rect2.y))
@@ -49,9 +108,43 @@ MineField := class extend GUIObject
 						nonMinePressed[wdth].drawLayout = this.drawLayout
 						nonMinePressed[wdth].PushDraw(cmdB,w,h,vec2f(rect2.x,rect2.y))
 					}
+				}
+			}
+		}
+
+		for x : base.SizeX
+		{
+			for y : base.SizeY
+			{
+				rect2.x = offset.x + x*(boxSize + margin)
+				rect2.y = offset.y + y*(boxSize + margin)
+				rect2.w = boxSize
+				rect2.h = boxSize
+
+				fld := base.GetField(x,y)
+
+				if fld.isPressed
+				{
+					if fld.isMine
+					{
+						if fld.isDefused
+						{
+							blankTiles[ (x + y) and_b 1 ].Draw(base,cmdB,quadMesh,drawLayout,w,h,vec2f(rect2.x,rect2.y))
+							flagTile.Draw(base,cmdB,quadSmallMesh,drawLayout,w,h,vec2f(rect2.x,rect2.y))
+						}else{
+							backgroundTile.Draw(base,cmdB,quadMesh,drawLayout,w,h,vec2f(rect2.x,rect2.y))
+							bombTile.Draw(base,cmdB,quadMesh,drawLayout,w,h,vec2f(rect2.x,rect2.y))
+						}
+					}else{
+						wdth := base.GetSpaceWeight(x,y)
+						backgroundTile.Draw(base,cmdB,quadMesh,drawLayout,w,h,vec2f(rect2.x,rect2.y))
+						if wdth in 1..8
+						{
+							numbersTile[wdth].Draw(base,cmdB,quadSmallMesh,drawLayout,w,h,vec2f(rect2.x,rect2.y))	
+						}
+					}
 				}else{
-					mineBlank.drawLayout = this.drawLayout
-					mineBlank.PushDraw(cmdB,w,h,vec2f(rect2.x,rect2.y))
+					blankTiles[ (x + y) and_b 1 ].Draw(base,cmdB,quadMesh,drawLayout,w,h,vec2f(rect2.x,rect2.y))
 				}
 			}
 		}

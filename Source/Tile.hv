@@ -1,0 +1,30 @@
+
+Tile := class
+{
+	texture := TVkTexture^
+	descriptor := VkDescriptorSet
+
+	Create := !(SweeperNuklear^ base,TDescriptorPool^ pool,vRepoFile^ file) -> void
+	{
+		descriptor = pool.CreateDescriptor()
+
+		texture = base.vInstance.CreateTexture()
+		texture.CreateTexture(file)
+		vSetTexture(base.vInstance,descriptor,texture,base.vInstance.SamplerNearest)
+	}
+	Draw := !(SweeperNuklear^ base,VkCommandBuffer cmdB,TVkMesh^ mesh,TShaderInput^ drawLayout,int w, int h,vec2f offset) -> void
+	{
+		
+		sts := VkDescriptorSet[1]
+		sts[0] = descriptor
+		base.vInstance.Funcs.vkCmdBindDescriptorSets(cmdB,VK_PIPELINE_BIND_POINT_GRAPHICS,drawLayout.Get(),0,1,sts[0]&,0,null)
+		mesh.Bind(cmdB)
+		scales := float[4]
+		scales[0] = 1.0 / w
+		scales[1] = 1.0 / h
+		scales[2] = offset.x
+		scales[3] = offset.y
+		base.vInstance.Funcs.vkCmdPushConstants(cmdB,drawLayout.Get(),VK_SHADER_STAGE_VERTEX_BIT,0,4*4,scales&)
+		base.vInstance.Funcs.vkCmdDrawIndexed(cmdB,6,1,0,0,0)
+	}
+}
