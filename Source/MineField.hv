@@ -12,14 +12,9 @@ MineField := class extend GUIObject
 
 	base := SweeperNuklear^
 
-	mineBlank := NkButton^
-	minePressed := NkButton^
-	mineDefused := NkButton^
-	nonMinePressed := NkButton^[9]
-
 	quadMesh := TVkMesh^
 	quadSmallMesh := TVkMesh^
-
+	backQuad := TVkMesh^
 
 	tilesPool := TDescriptorPool^ 
 
@@ -29,6 +24,9 @@ MineField := class extend GUIObject
 	blankTiles := Tile[2]
 	numbersTile := Tile[10]
 
+	quadLayout := TShaderInput^
+	quadShader := vShader^
+
 	this := !(SweeperNuklear^ bck,int x, int y) -> void
 	{
 		base = bck
@@ -37,7 +35,19 @@ MineField := class extend GUIObject
 
 		SetSize("static",boxSize*x + margin*(x - 1), "static", boxSize*y + margin*(y - 1))
 
-		tilesPool := base.drawLayout.CreateDescriptorPool(0,20)
+		tilesPool := base.vkOverlay.textDrawLayout.CreateDescriptorPool(0,20)
+
+		quadLayout = base.mainRenderPass.CreateLayout(![
+			VKType(VType_Float,2),
+			VKType(VType_Float,2),
+			VKType(VType_UInt8,4)
+		],![
+		],![
+			new TVertexPushConstant(4*6)
+		],
+		1
+		)
+		quadShader = quadLayout.CreateShader(#EmbVKShader("TextVert.vert"),#EmbVKShader("TextFrag.frag"))
 
 		verts := meshData[4]
 
@@ -56,12 +66,26 @@ MineField := class extend GUIObject
 
 		quadMesh = base.vInstance.CreateMesh(TArraySpan.{u8}(verts[0]&->{u8^},4*meshData->TypeSize),TArraySpan.{u8}(inds[0]&->{u8^},6*4),VKType(VType_UInt32,1))
 
+		for it,i : ![!{0.0,0.0} ,!{1.0,0.0} ,!{0.0,1.0} ,!{1.0,1.0}]
+		{
+			verts[i].pos[0] = it.0
+			verts[i].pos[1] = it.1
+			verts[i].color[0] = 45
+			verts[i].color[1] = 148
+			verts[i].color[2] = 117
+		}
+
+		backQuad = base.vInstance.CreateMesh(TArraySpan.{u8}(verts[0]&->{u8^},4*meshData->TypeSize),TArraySpan.{u8}(inds[0]&->{u8^},6*4),VKType(VType_UInt32,1))
+
 		smallSide := 0.15
 		bigSide := 0.85
 		for it,i : ![!{smallSide,smallSide} ,!{bigSide,smallSide} ,!{smallSide,bigSide} ,!{bigSide,bigSide}]
 		{
 			verts[i].pos[0] = 30.0*it.0
 			verts[i].pos[1] = 30.0*it.1
+			verts[i].color[0] = 255
+			verts[i].color[1] = 255
+			verts[i].color[2] = 255
 		}
 		quadSmallMesh = base.vInstance.CreateMesh(TArraySpan.{u8}(verts[0]&->{u8^},4*meshData->TypeSize),TArraySpan.{u8}(inds[0]&->{u8^},6*4),VKType(VType_UInt32,1))
 
@@ -77,8 +101,28 @@ MineField := class extend GUIObject
 		}
 
 	}
-	PushDraw := virtual !(VkCommandBuffer cmdB,int w,int h,vec2f offset) -> void
+	PushDraw := virtual !(VkOverlayContext^ ctx,VkCommandBuffer cmdB,vec2f offset) -> void
 	{
+		sc := VkRect2D
+		sc.offset.x = 0
+		sc.offset.y = 0
+		sc.extent.width = ctx.w
+		sc.extent.height = ctx.h
+		base.vInstance.Funcs.vkCmdSetScissor(cmdB,0,1,sc&)
+
+
+		quadShader.ApplyShaderToQueue(base.vInstance,cmdB,ctx.w,ctx.h)
+		backQuad.Bind(cmdB)
+		scales := float[6]
+		scales[0] = 1.0 / ctx.w
+		scales[1] = 1.0 / ctx.h
+		scales[2] = offset.x - 4
+		scales[3] = offset.y - 4
+		scales[4] = thisLayoutSize.x + 8
+		scales[5] = thisLayoutSize.y + 8
+		base.vInstance.Funcs.vkCmdPushConstants(cmdB,quadLayout.Get(),VK_SHADER_STAGE_VERTEX_BIT,0,4*6,scales&)
+		base.vInstance.Funcs.vkCmdDrawIndexed(cmdB,6,1,0,0,0)
+
 		rect2 := nk_rect
 		for x : base.SizeX
 		{
@@ -97,85 +141,27 @@ MineField := class extend GUIObject
 					{
 						if fld.isDefused
 						{
-							//mineDefused.drawLayout = this.drawLayout
-							//mineDefused.PushDraw(cmdB,w,h,vec2f(rect2.x,rect2.y))
+							blankTiles[ (x + y) and_b 1 ].Draw(ctx,cmdB,quadMesh,vec2f(rect2.x,rect2.y))
+							flagTile.Draw(ctx,cmdB,quadSmallMesh,vec2f(rect2.x,rect2.y))
 						}else{
-							minePressed.drawLayout = this.drawLayout
-							minePressed.PushDraw(cmdB,w,h,vec2f(rect2.x,rect2.y))
+							backgroundTile.Draw(ctx,cmdB,quadMesh,vec2f(rect2.x,rect2.y))
+							bombTile.Draw(ctx,cmdB,quadMesh,vec2f(rect2.x,rect2.y))
 						}
 					}else{
 						wdth := base.GetSpaceWeight(x,y)
-						nonMinePressed[wdth].drawLayout = this.drawLayout
-						nonMinePressed[wdth].PushDraw(cmdB,w,h,vec2f(rect2.x,rect2.y))
-					}
-				}
-			}
-		}
-
-		for x : base.SizeX
-		{
-			for y : base.SizeY
-			{
-				rect2.x = offset.x + x*(boxSize + margin)
-				rect2.y = offset.y + y*(boxSize + margin)
-				rect2.w = boxSize
-				rect2.h = boxSize
-
-				fld := base.GetField(x,y)
-
-				if fld.isPressed
-				{
-					if fld.isMine
-					{
-						if fld.isDefused
-						{
-							blankTiles[ (x + y) and_b 1 ].Draw(base,cmdB,quadMesh,drawLayout,w,h,vec2f(rect2.x,rect2.y))
-							flagTile.Draw(base,cmdB,quadSmallMesh,drawLayout,w,h,vec2f(rect2.x,rect2.y))
-						}else{
-							backgroundTile.Draw(base,cmdB,quadMesh,drawLayout,w,h,vec2f(rect2.x,rect2.y))
-							bombTile.Draw(base,cmdB,quadMesh,drawLayout,w,h,vec2f(rect2.x,rect2.y))
-						}
-					}else{
-						wdth := base.GetSpaceWeight(x,y)
-						backgroundTile.Draw(base,cmdB,quadMesh,drawLayout,w,h,vec2f(rect2.x,rect2.y))
+						backgroundTile.Draw(ctx,cmdB,quadMesh,vec2f(rect2.x,rect2.y))
 						if wdth in 1..8
 						{
-							numbersTile[wdth].Draw(base,cmdB,quadSmallMesh,drawLayout,w,h,vec2f(rect2.x,rect2.y))	
+							numbersTile[wdth].Draw(ctx,cmdB,quadSmallMesh,vec2f(rect2.x,rect2.y))	
 						}
 					}
 				}else{
-					blankTiles[ (x + y) and_b 1 ].Draw(base,cmdB,quadMesh,drawLayout,w,h,vec2f(rect2.x,rect2.y))
+					blankTiles[ (x + y) and_b 1 ].Draw(ctx,cmdB,quadMesh,vec2f(rect2.x,rect2.y))
 				}
 			}
 		}
 	}
 
-	SetLayout := virtual !(NuklearVulkanContext^ ctx,vec2f setSize) -> void
-	{
-		super(ctx,setSize)
-		if mineBlank == null
-		{
-			mineBlank = new NkButton(base.nuklearContext,30,30,"")
-			mineBlank.SetLayout(ctx,vec2f(30,30))
-
-			minePressed = new NkButton(base.nuklearContext,30,30,"")
-			minePressed.SetColor("normal",255,0,0)
-			minePressed.SetLayout(ctx,vec2f(30,30))
-
-			mineDefused = new NkButton(base.nuklearContext,30,30,"")
-			mineDefused.SetColor("normal",0,255,0)
-			mineDefused.SetLayout(ctx,vec2f(30,30))
-
-			numbers := !["","1","2","3","4","5","6","7","8"]
-			for i : 9
-			{
-				nonMinePressed[i] = new NkButton(base.nuklearContext,30,30,numbers[i])
-				nonMinePressed[i].SetColor("normal",128,128,128)
-				nonMinePressed[i].SetLayout(ctx,vec2f(30,30))
-			}
-		}
-
-	}
 	MousePressed := virtual !(int buttonNum, bool pressed,vec2f offset) -> void
 	{
 		if not pressed

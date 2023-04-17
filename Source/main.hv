@@ -25,14 +25,17 @@ SweeperNuklear := class extend SimpleWindow
 	firstPress := bool
 
 	mineFieldView := MineField^
+
+	thisFont := Font^
 	
 	InitWindow := virtual !() -> GUIObject^
 	{
-		mineFieldView = new MineField(this&,15,15)
-		mineFieldView.drawLayout = this.drawLayout
+		thisFont = CreateFont(FSGetFile("Goldman-Regular.ttf"),32)
 
-		resetButton := new NkButton(nuklearContext,0,40,"Reset")
-		resetButton.drawLayout = this.drawLayout
+		ClearColor = vec4f(208 / 255, 220 / 255, 133 / 255,1.0)
+		mineFieldView = new MineField(this&,15,15)
+
+		resetButton := new NkButton(this&,0,40,"Reset",thisFont)
 		lay := new LayoutHorizontal(![
 			new LayoutSpacer("",0),
 			new LayoutVertical(![
@@ -208,7 +211,6 @@ ProxyForSweeper := class
 
 main := !(char^[] args) -> void
 {
-	tracy_init()
 	w := new SweeperNuklear(700,700,"MineSweeper")
 	w.InitField(15,15)
 	//w.SetFPSLimit(30)
