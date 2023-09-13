@@ -14,11 +14,23 @@ MineField := class extend GUIObject
 	baseMesh := TVkMesh^
 	baseIndCount := int
 
+	bombRect := stbrp_rect^
+	flagRect := stbrp_rect^
+	backgroundRect := stbrp_rect^
+	numRect := stbrp_rect^
+	unknownRect := stbrp_rect^
+
+	vecData := Vector.{float}
+	indData := Vector.{int}
+	tilesState := Vector.{u8}
+
 	this := !(SweeperNuklear^ bck,int x, int y) -> void
 	{
 		base = bck
 		boxSize = 30.0
 		margin = 2.0
+
+		tilesState.Resize(x*y)
 
 		SetSize("static",boxSize*x + margin*(x - 1), "static", boxSize*y + margin*(y - 1))
 
@@ -59,11 +71,14 @@ MineField := class extend GUIObject
 		atlasTest.AddImage(newImage)
 		atlasTest.Finish(bck.vInstance)
 
+		bombRect = atlasTest.rectangles[1]&
+		flagRect = atlasTest.rectangles[0]&
+		backgroundRect = atlasTest.rectangles[2]&
+		numRect = atlasTest.rectangles[5]&
+		unknownRect = atlasTest.rectangles[3]&
+
 		atlasTestDesc = tilesPool.CreateDescriptor()
 		vSetTexture(bck.vInstance,atlasTestDesc,atlasTest.atlasTexture,bck.vInstance.SamplerNearest)
-
-		vecData := Vector.{float}
-		indData := Vector.{int}
 
 
 		backgroundSize := 4*5
@@ -90,19 +105,19 @@ MineField := class extend GUIObject
 			val[4] = color[0]&->{float^}^
 
 			val[5] = 0.0 - 4
-			val[6] = y*(boxSize + margin) - margin + 8
+			val[6] = y*(boxSize + margin) - margin + 4
 			val[7] = rct.x / atlasTest.atlasW
 			val[8] = (rct.y + rct.h) / atlasTest.atlasH
 			val[9] = color[0]&->{float^}^
 
-			val[10] = x*(boxSize + margin) - margin + 8
-			val[11] = y*(boxSize + margin) - margin + 8
+			val[10] = x*(boxSize + margin) - margin + 4
+			val[11] = y*(boxSize + margin) - margin + 4
 			val[12] = (rct.x + rct.w) / atlasTest.atlasW
 			val[13] = (rct.y + rct.h) / atlasTest.atlasH
 			val[14] = color[0]&->{float^}^
 
-			val[15] = x*(boxSize + margin) - margin +8
-			val[16] = 0.0
+			val[15] = x*(boxSize + margin) - margin + 4
+			val[16] = 0.0 - 4
 			val[17] = (rct.x + rct.w) / atlasTest.atlasW
 			val[18] = rct.y / atlasTest.atlasH
 			val[19] = color[0]&->{float^}^
@@ -188,44 +203,6 @@ MineField := class extend GUIObject
 		ctx.inst.Funcs.vkCmdDrawIndexed(cmdB,baseIndCount,1,0,0,0)
 
 		return void
-
-		//rect2 := nk_rect
-		//for x : base.SizeX
-		//{
-		//	for y : base.SizeY
-		//	{
-		//		rect2.x = offset.x + x*(boxSize + margin)
-		//		rect2.y = offset.y + y*(boxSize + margin)
-		//		rect2.w = boxSize
-		//		rect2.h = boxSize
-
-		//		fld := base.GetField(x,y)
-
-		//		if fld.isPressed
-		//		{
-		//			if fld.isMine
-		//			{
-		//				if fld.isDefused
-		//				{
-		//					blankTiles[ (x + y) and_b 1 ].Draw(ctx,cmdB,quadMesh,vec2f(rect2.x,rect2.y))
-		//					flagTile.Draw(ctx,cmdB,quadSmallMesh,vec2f(rect2.x,rect2.y))
-		//				}else{
-		//					backgroundTile.Draw(ctx,cmdB,quadMesh,vec2f(rect2.x,rect2.y))
-		//					bombTile.Draw(ctx,cmdB,quadMesh,vec2f(rect2.x,rect2.y))
-		//				}
-		//			}else{
-		//				wdth := base.GetSpaceWeight(x,y)
-		//				backgroundTile.Draw(ctx,cmdB,quadMesh,vec2f(rect2.x,rect2.y))
-		//				if wdth in 1..8
-		//				{
-		//					numbersTile[wdth].Draw(ctx,cmdB,quadSmallMesh,vec2f(rect2.x,rect2.y))
-		//				}
-		//			}
-		//		}else{
-		//			blankTiles[ (x + y) and_b 1 ].Draw(ctx,cmdB,quadMesh,vec2f(rect2.x,rect2.y))
-		//		}
-		//	}
-		//}
 	}
 
 	MousePressed := virtual !(int buttonNum, bool pressed,vec2f offset) -> void
@@ -257,5 +234,115 @@ MineField := class extend GUIObject
 			case 1
 				base.PressRight(indX,indY)
 		}
+
+		changedData := false
+		for i : base.SizeX
+		{
+			for j : base.SizeY
+			{
+				itInd := 0
+
+				fld := base.GetField(i,j)
+
+				if fld.isPressed
+				{
+					if fld.isMine
+					{
+						if fld.isDefused
+						{
+							//flagTile.Draw(ctx,cmdB,quadSmallMesh,vec2f(rect2.x,rect2.y))
+							itInd = 10
+						}else{
+							//bombTile.Draw(ctx,cmdB,quadMesh,vec2f(rect2.x,rect2.y))
+							itInd = 11
+						}
+					}else{
+						wdth := base.GetSpaceWeight(i,j)
+						if wdth in 1..8
+						{
+							itInd = wdth
+						}else{
+							itInd = 9
+						}
+					}
+				}else{
+					itInd = 0
+				}
+				tInd := i + j*base.SizeX
+				if itInd != tilesState[tInd]
+				{
+					tilesState[tInd] = itInd
+					changedData = true
+
+					vecPtr := vecData[4*5 + tInd*5*2*4]&
+
+					setRect := flagRect
+
+					switch itInd
+					{
+						case 0 setRect = unknownRect[(i + j) and_b 1]&	
+						case in 1..8 setRect = backgroundRect
+						case 9 setRect = backgroundRect
+						case 10 setRect = backgroundRect
+						case 11 setRect = backgroundRect
+					}
+					SetTileRect(vecPtr,setRect)
+
+
+					if itInd in 1..8 or itInd == 10 or itInd == 11
+					{
+						backRect := stbrp_rect^
+						switch itInd
+						{
+							case in 1..8  backRect = numRect[itInd - 1]&
+							case 10 backRect = flagRect
+							case 11 backRect = bombRect
+						}
+						SetTileRect(vecPtr[20]&,backRect)
+						SetTileColor(vecPtr[20]&,255,255,255,255)
+					}else{
+						SetTileColor(vecPtr[20]&,255,255,255,0)
+					}
+
+				}
+			}
+		}
+		if changedData
+		{
+			baseMesh.TransferData(TArraySpan.{u8}(vecData.GetPointer()->{u8^},4*vecData.Size()),TArraySpan.{u8}(indData.GetPointer()->{u8^},indData.Size()*4))
+		}
+		//bombRect = atlasTest.rectangles[1]
+		//flagRect = atlasTest.rectangles[0]
+		//backgroundRect = atlasTest.rectangles[2]
+		//numRect = atlasTest.rectangles[5]
+	}
+	SetTileRect := !(float^ vecPtr,stbrp_rect^ setRect) -> void
+	{
+		vecPtr[2] = setRect.x / atlasTest.atlasW
+		vecPtr[3] = setRect.y / atlasTest.atlasH
+
+		vecPtr[7] = setRect.x / atlasTest.atlasW
+		vecPtr[8] = (setRect.y + setRect.h)/ atlasTest.atlasH
+
+		vecPtr[12] = (setRect.x + setRect.w) / atlasTest.atlasW
+		vecPtr[13] = (setRect.y + setRect.h) / atlasTest.atlasH
+
+		vecPtr[17] = (setRect.x + setRect.w) / atlasTest.atlasW
+		vecPtr[18] = setRect.y / atlasTest.atlasH
+	}
+	SetTileColor := !(float^ vecPtr,u8 r, u8 g, u8 b, u8 a) -> void
+	{
+		clr := u8[4]
+		clr[0] = r
+		clr[1] = g
+		clr[2] = b
+		clr[3] = a
+
+		clr2 := clr[0]&->{float^}^
+
+		vecPtr[4] = clr2
+		vecPtr[9] = clr2
+		vecPtr[14] = clr2
+		vecPtr[19] = clr2
 	}
 }
