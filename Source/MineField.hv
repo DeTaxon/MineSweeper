@@ -18,6 +18,12 @@ MineField := class extend GUIObject
 	blankTiles := Tile[2]
 	numbersTile := Tile[10]
 
+	atlasTest := ImageAtlas
+	atlasTestDesc := VkDescriptorSet
+
+	baseMesh := TVkMesh^
+	baseIndCount := int
+
 	quadLayout := TShaderInput^
 	quadShader := vShader^
 
@@ -94,16 +100,100 @@ MineField := class extend GUIObject
 			numbersTile[i].Create(base,tilesPool,FSGetFile(CreateString("Textures/",i,".webp")))
 		}
 
+		atlasTest."this"(512,512,32)
+		atlasTest.AddImage(FSGetFile("Textures/Flag.webp"))
+		atlasTest.AddImage(FSGetFile("Textures/Bomb.webp"))
+		atlasTest.AddImage(FSGetFile("Textures/Background.webp"))
+		atlasTest.AddImage(FSGetFile("Textures/Tile1.webp"))
+		atlasTest.AddImage(FSGetFile("Textures/Tile2.webp"))
+		for i : 1..8
+		{
+			atlasTest.AddImage(FSGetFile(CreateString("Textures/",i,".webp")))
+		}
+		atlasTest.Finish(bck.vInstance)
+
+		atlasTestDesc = tilesPool.CreateDescriptor()
+		vSetTexture(bck.vInstance,atlasTestDesc,atlasTest.atlasTexture,bck.vInstance.SamplerNearest)
+
+		vecData := Vector.{float}
+		indData := Vector.{int}
+
+		vecData.Resize(x*y*5*2*4)
+		indData.Resize(x*y*6*2)
+
+		rect := ref atlasTest.rectangles[0]
+
+		vecPtr := vecData.GetPointer()
+		for i : x
+		{
+			for j : x
+			{
+				val := vecPtr[(i + j*x)*5*2*4]&
+
+				for k : 2
+				{
+					ofst := k*20
+
+					val[0 + ofst] = i*(boxSize + margin)
+					val[1 + ofst] = j*(boxSize + margin)
+					val[2 + ofst] = rect.x / atlasTest.atlasW
+					val[3 + ofst] = rect.y / atlasTest.atlasH
+					val[4 + ofst] = 0.0
+					if k == 0
+					{
+						c := val[4]&->{u8^}
+						c[0] = 255
+						c[1] = 255
+						c[2] = 255
+						c[3] = 255
+					}
+
+					val[5 + ofst] = i*(boxSize + margin)
+					val[6 + ofst] = j*(boxSize + margin) + boxSize
+					val[7 + ofst] = rect.x / atlasTest.atlasW
+					val[8 + ofst] = (rect.y + rect.h) / atlasTest.atlasH
+					val[9 + ofst] = val[4 + ofst]
+
+					val[10 + ofst] = i*(boxSize + margin) + boxSize
+					val[11 + ofst] = j*(boxSize + margin) + boxSize
+					val[12 + ofst] = (rect.x + rect.w) / atlasTest.atlasW
+					val[13 + ofst] = (rect.y + rect.h) / atlasTest.atlasH
+					val[14 + ofst] = val[4 + ofst]
+
+					val[15 + ofst] = i*(boxSize + margin) + boxSize
+					val[16 + ofst] = j*(boxSize + margin)
+					val[17 + ofst] = (rect.x + rect.w) / atlasTest.atlasW
+					val[18 + ofst] = rect.y / atlasTest.atlasH
+					val[19 + ofst] = val[4 + ofst]
+				}
+			}
+		}
+
+		cntr := 0
+		for i : (x*y*2)
+		{
+			ind := indData[i*6]&
+			ind[0] = cntr 
+			ind[1] = cntr + 1
+			ind[2] = cntr + 2
+			ind[3] = cntr
+			ind[4] = cntr + 2
+			ind[5] = cntr + 3
+
+			cntr += 4
+		}
+		baseMesh = base.vInstance.CreateMesh(TArraySpan.{u8}(vecData.GetPointer()->{u8^},4*vecData.Size()),TArraySpan.{u8}(indData.GetPointer()->{u8^},indData.Size()*4),VKType(VType_UInt32,1))
+		baseIndCount = indData.Size()
 	}
 	PushDraw := virtual !(VkOverlayContext^ ctx,VkCommandBuffer cmdB,vec2f offset) -> void
 	{
+
 		sc := VkRect2D
 		sc.offset.x = 0
 		sc.offset.y = 0
 		sc.extent.width = ctx.w
 		sc.extent.height = ctx.h
 		base.vInstance.Funcs.vkCmdSetScissor(cmdB,0,1,sc&)
-
 
 		quadShader.ApplyShaderToQueue(base.vInstance,cmdB,ctx.w,ctx.h)
 		backQuad.Bind(cmdB)
@@ -116,6 +206,23 @@ MineField := class extend GUIObject
 		scales[5] = thisLayoutSize.y + 8
 		base.vInstance.Funcs.vkCmdPushConstants(cmdB,quadLayout.Get(),VK_SHADER_STAGE_VERTEX_BIT,0,4*6,scales&)
 		base.vInstance.Funcs.vkCmdDrawIndexed(cmdB,6,1,0,0,0)
+
+
+
+		ctx.textDrawShader.ApplyShaderToQueue(ctx.inst,cmdB,ctx.w,ctx.h)
+		sts := VkDescriptorSet[1]
+		sts[0] = atlasTestDesc
+		ctx.inst.Funcs.vkCmdBindDescriptorSets(cmdB,VK_PIPELINE_BIND_POINT_GRAPHICS,ctx.textDrawLayout.Get(),0,1,sts[0]&,0,null)
+		baseMesh.Bind(cmdB)
+		scales := float[4]
+		scales[0] = 1.0 / ctx.w
+		scales[1] = 1.0 / ctx.h
+		scales[2] = offset.x
+		scales[3] = offset.y
+		ctx.inst.Funcs.vkCmdPushConstants(cmdB,ctx.textDrawLayout.Get(),VK_SHADER_STAGE_VERTEX_BIT,0,4*4,scales&)
+		ctx.inst.Funcs.vkCmdDrawIndexed(cmdB,baseIndCount,1,0,0,0)
+
+		return void
 
 		rect2 := nk_rect
 		for x : base.SizeX
@@ -146,7 +253,7 @@ MineField := class extend GUIObject
 						backgroundTile.Draw(ctx,cmdB,quadMesh,vec2f(rect2.x,rect2.y))
 						if wdth in 1..8
 						{
-							numbersTile[wdth].Draw(ctx,cmdB,quadSmallMesh,vec2f(rect2.x,rect2.y))	
+							numbersTile[wdth].Draw(ctx,cmdB,quadSmallMesh,vec2f(rect2.x,rect2.y))
 						}
 					}
 				}else{

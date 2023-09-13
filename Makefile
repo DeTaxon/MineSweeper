@@ -1,6 +1,6 @@
 
 sweeper:
-	./halfvoid -g -C0 libs2 -C1 Source --vk vk.xml -o /tmp/out.ll
+	./halfvoid -g -C0 libs2 -C1 Source --vk vk.xml -o /tmp/out.ll -cache /tmp/MSCache.zip
 	clang -g /tmp/out.ll -lm -o sweeper
 win.exe:
 	./halfvoid -win32 -g -C0 libs2 -C1 Source --vk vk.xml -o /tmp/out.ll
