@@ -110,6 +110,16 @@ MineField := class extend GUIObject
 		{
 			atlasTest.AddImage(FSGetFile(CreateString("Textures/",i,".webp")))
 		}
+
+		newImage := new Image()
+		newImage.CreateBlank(1,1)
+		newImage.ForEachPixelU8((x,y,ptr) ==> {
+			ptr[0] = 255
+			ptr[1] = 255
+			ptr[2] = 255
+			ptr[3] = 255
+		})
+		atlasTest.AddImage(newImage)
 		atlasTest.Finish(bck.vInstance)
 
 		atlasTestDesc = tilesPool.CreateDescriptor()
@@ -118,17 +128,56 @@ MineField := class extend GUIObject
 		vecData := Vector.{float}
 		indData := Vector.{int}
 
-		vecData.Resize(x*y*5*2*4)
-		indData.Resize(x*y*6*2)
 
-		rect := ref atlasTest.rectangles[0]
+		backgroundSize := 4*5
+		vecData.Resize(backgroundSize + x*y*5*2*4)
+		indData.Resize(6 + x*y*6*2)
+
 
 		vecPtr := vecData.GetPointer()
+
+		{
+			val := vecData.GetPointer()
+			rct := ref atlasTest.rectangles[13]
+
+			color := u8[4]
+			color[0] = 45
+			color[1] = 148
+			color[2] = 117
+			color[3] = 255
+
+			val[0] = 0.0 - 4
+			val[1] = 0.0 - 4
+			val[2] = rct.x / atlasTest.atlasW
+			val[3] = rct.y / atlasTest.atlasH
+			val[4] = color[0]&->{float^}^
+
+			val[5] = 0.0 - 4
+			val[6] = y*(boxSize + margin) - margin + 8
+			val[7] = rct.x / atlasTest.atlasW
+			val[8] = (rct.y + rct.h) / atlasTest.atlasH
+			val[9] = color[0]&->{float^}^
+
+			val[10] = x*(boxSize + margin) - margin + 8
+			val[11] = y*(boxSize + margin) - margin + 8
+			val[12] = (rct.x + rct.w) / atlasTest.atlasW
+			val[13] = (rct.y + rct.h) / atlasTest.atlasH
+			val[14] = color[0]&->{float^}^
+
+			val[15] = x*(boxSize + margin) - margin + 8
+			val[16] = 0.0 - 4
+			val[17] = (rct.x + rct.w) / atlasTest.atlasW
+			val[18] = rct.y / atlasTest.atlasH
+			val[19] = color[0]&->{float^}^
+		}
+
+
 		for i : x
 		{
 			for j : x
 			{
-				val := vecPtr[(i + j*x)*5*2*4]&
+				rect := ref atlasTest.rectangles[3 + ((i + j) and_b 1)]
+				val := vecPtr[backgroundSize + (i + j*x)*5*2*4]&
 
 				for k : 2
 				{
@@ -170,7 +219,7 @@ MineField := class extend GUIObject
 		}
 
 		cntr := 0
-		for i : (x*y*2)
+		for i : (x*y*2 + 1)
 		{
 			ind := indData[i*6]&
 			ind[0] = cntr 
@@ -183,30 +232,30 @@ MineField := class extend GUIObject
 			cntr += 4
 		}
 		baseMesh = base.vInstance.CreateMesh(TArraySpan.{u8}(vecData.GetPointer()->{u8^},4*vecData.Size()),TArraySpan.{u8}(indData.GetPointer()->{u8^},indData.Size()*4),VKType(VType_UInt32,1))
+
 		baseIndCount = indData.Size()
 	}
 	PushDraw := virtual !(VkOverlayContext^ ctx,VkCommandBuffer cmdB,vec2f offset) -> void
 	{
 
-		sc := VkRect2D
-		sc.offset.x = 0
-		sc.offset.y = 0
-		sc.extent.width = ctx.w
-		sc.extent.height = ctx.h
-		base.vInstance.Funcs.vkCmdSetScissor(cmdB,0,1,sc&)
+		//sc := VkRect2D
+		//sc.offset.x = 0
+		//sc.offset.y = 0
+		//sc.extent.width = ctx.w
+		//sc.extent.height = ctx.h
+		//base.vInstance.Funcs.vkCmdSetScissor(cmdB,0,1,sc&)
 
-		quadShader.ApplyShaderToQueue(base.vInstance,cmdB,ctx.w,ctx.h)
-		backQuad.Bind(cmdB)
-		scales := float[6]
-		scales[0] = 1.0 / ctx.w
-		scales[1] = 1.0 / ctx.h
-		scales[2] = offset.x - 4
-		scales[3] = offset.y - 4
-		scales[4] = thisLayoutSize.x + 8
-		scales[5] = thisLayoutSize.y + 8
-		base.vInstance.Funcs.vkCmdPushConstants(cmdB,quadLayout.Get(),VK_SHADER_STAGE_VERTEX_BIT,0,4*6,scales&)
-		base.vInstance.Funcs.vkCmdDrawIndexed(cmdB,6,1,0,0,0)
-
+		//quadShader.ApplyShaderToQueue(base.vInstance,cmdB,ctx.w,ctx.h)
+		//backQuad.Bind(cmdB)
+		//scales := float[6]
+		//scales[0] = 1.0 / ctx.w
+		//scales[1] = 1.0 / ctx.h
+		//scales[2] = offset.x - 4
+		//scales[3] = offset.y - 4
+		//scales[4] = thisLayoutSize.x + 8
+		//scales[5] = thisLayoutSize.y + 8
+		//base.vInstance.Funcs.vkCmdPushConstants(cmdB,quadLayout.Get(),VK_SHADER_STAGE_VERTEX_BIT,0,4*6,scales&)
+		//base.vInstance.Funcs.vkCmdDrawIndexed(cmdB,6,1,0,0,0)
 
 
 		ctx.textDrawShader.ApplyShaderToQueue(ctx.inst,cmdB,ctx.w,ctx.h)
@@ -221,6 +270,7 @@ MineField := class extend GUIObject
 		scales[3] = offset.y
 		ctx.inst.Funcs.vkCmdPushConstants(cmdB,ctx.textDrawLayout.Get(),VK_SHADER_STAGE_VERTEX_BIT,0,4*4,scales&)
 		ctx.inst.Funcs.vkCmdDrawIndexed(cmdB,baseIndCount,1,0,0,0)
+		//ctx.inst.Funcs.vkCmdDrawIndexed(cmdB,6,1,0,0,0)
 
 		return void
 
