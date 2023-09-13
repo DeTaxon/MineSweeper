@@ -92,35 +92,20 @@ MineField := class extend GUIObject
 			val := vecData.GetPointer()
 			rct := ref atlasTest.rectangles[13]
 
-			color := u8[4]
-			color[0] = 45
-			color[1] = 148
-			color[2] = 117
-			color[3] = 255
+			SetTileRect(val,rct&)
+			SetTileColor(val,45,148,117,255)
 
 			val[0] = 0.0 - 4
 			val[1] = 0.0 - 4
-			val[2] = rct.x / atlasTest.atlasW
-			val[3] = rct.y / atlasTest.atlasH
-			val[4] = color[0]&->{float^}^
 
 			val[5] = 0.0 - 4
 			val[6] = y*(boxSize + margin) - margin + 4
-			val[7] = rct.x / atlasTest.atlasW
-			val[8] = (rct.y + rct.h) / atlasTest.atlasH
-			val[9] = color[0]&->{float^}^
 
 			val[10] = x*(boxSize + margin) - margin + 4
 			val[11] = y*(boxSize + margin) - margin + 4
-			val[12] = (rct.x + rct.w) / atlasTest.atlasW
-			val[13] = (rct.y + rct.h) / atlasTest.atlasH
-			val[14] = color[0]&->{float^}^
 
 			val[15] = x*(boxSize + margin) - margin + 4
 			val[16] = 0.0 - 4
-			val[17] = (rct.x + rct.w) / atlasTest.atlasW
-			val[18] = rct.y / atlasTest.atlasH
-			val[19] = color[0]&->{float^}^
 		}
 
 
@@ -135,37 +120,28 @@ MineField := class extend GUIObject
 				{
 					ofst := k*20
 
-					val[0 + ofst] = i*(boxSize + margin)
-					val[1 + ofst] = j*(boxSize + margin)
-					val[2 + ofst] = rect.x / atlasTest.atlasW
-					val[3 + ofst] = rect.y / atlasTest.atlasH
-					val[4 + ofst] = 0.0
+					SetTileRect(val[0 + ofst]&,rect&)
+					
+					indent := 0.0
+
 					if k == 0
 					{
-						c := val[4]&->{u8^}
-						c[0] = 255
-						c[1] = 255
-						c[2] = 255
-						c[3] = 255
+						SetTileColor(val[ofst]&,255,255,255,255)
+					}else{
+						indent = boxSize*0.10
 					}
 
-					val[5 + ofst] = i*(boxSize + margin)
-					val[6 + ofst] = j*(boxSize + margin) + boxSize
-					val[7 + ofst] = rect.x / atlasTest.atlasW
-					val[8 + ofst] = (rect.y + rect.h) / atlasTest.atlasH
-					val[9 + ofst] = val[4 + ofst]
+					val[0 + ofst] = i*(boxSize + margin) + indent
+					val[1 + ofst] = j*(boxSize + margin) + indent
 
-					val[10 + ofst] = i*(boxSize + margin) + boxSize
-					val[11 + ofst] = j*(boxSize + margin) + boxSize
-					val[12 + ofst] = (rect.x + rect.w) / atlasTest.atlasW
-					val[13 + ofst] = (rect.y + rect.h) / atlasTest.atlasH
-					val[14 + ofst] = val[4 + ofst]
+					val[5 + ofst] = i*(boxSize + margin) + indent
+					val[6 + ofst] = j*(boxSize + margin) + boxSize - indent
 
-					val[15 + ofst] = i*(boxSize + margin) + boxSize
-					val[16 + ofst] = j*(boxSize + margin)
-					val[17 + ofst] = (rect.x + rect.w) / atlasTest.atlasW
-					val[18 + ofst] = rect.y / atlasTest.atlasH
-					val[19 + ofst] = val[4 + ofst]
+					val[10 + ofst] = i*(boxSize + margin) + boxSize - indent
+					val[11 + ofst] = j*(boxSize + margin) + boxSize - indent
+
+					val[15 + ofst] = i*(boxSize + margin) + boxSize - indent
+					val[16 + ofst] = j*(boxSize + margin) + indent
 				}
 			}
 		}
@@ -234,7 +210,10 @@ MineField := class extend GUIObject
 			case 1
 				base.PressRight(indX,indY)
 		}
-
+		UpdateGPUField()
+	}
+	UpdateGPUField := !() -> void
+	{
 		changedData := false
 		for i : base.SizeX
 		{
@@ -311,10 +290,6 @@ MineField := class extend GUIObject
 		{
 			baseMesh.TransferData(TArraySpan.{u8}(vecData.GetPointer()->{u8^},4*vecData.Size()),TArraySpan.{u8}(indData.GetPointer()->{u8^},indData.Size()*4))
 		}
-		//bombRect = atlasTest.rectangles[1]
-		//flagRect = atlasTest.rectangles[0]
-		//backgroundRect = atlasTest.rectangles[2]
-		//numRect = atlasTest.rectangles[5]
 	}
 	SetTileRect := !(float^ vecPtr,stbrp_rect^ setRect) -> void
 	{

@@ -49,6 +49,7 @@ SweeperNuklear := class extend SimpleWindow
 
 		resetButton.SetPressCallback(() ==> {
 			ResetField()
+			mineFieldView.UpdateGPUField()
 		})
 		return lay
 	}
