@@ -26,7 +26,7 @@ MineField := class
 	{
 		SizeX = x
 		SizeY = y
-		blocks.Resize(x + y*x)
+		blocks.Resize(x*y)
 	}
 	CleanField := !() -> void
 	{
@@ -34,6 +34,15 @@ MineField := class
 		{
 			it.isRevealed = false
 			it.fieldType = "Clean"
+		}
+	}
+	Rehide := !() -> void
+	{
+		for it : blocks
+		{
+			if it.fieldType == "Defused"
+				it.fieldType = "Mine"
+			it.isRevealed = false
 		}
 	}
 	RandomizeField := !(int mines) -> void
@@ -120,6 +129,8 @@ MineField := class
 			return void
 		if itField.fieldType == "Mine"
 			return void
+		if itField.fieldType == "Defused"
+			return void
 
 		unpressed := 0
 		foundMines := 0
@@ -129,7 +140,10 @@ MineField := class
 		{
 			chk := ref GetField(it.0,it.1)
 			if chk.fieldType == "Defused"
+			{
 				foundMines += 1
+				totalMines += 1
+			}
 			if chk.fieldType == "Mine"
 				totalMines += 1
 			if not chk.isRevealed
@@ -150,6 +164,19 @@ MineField := class
 			}
 		}
 	}
+
+	IsFullyRevealed := !() -> bool
+	{
+		for it,ind : blocks
+		{
+			if not it.isRevealed
+			{
+				return false
+			}
+		}
+		return true
+	}
+
 	StepSolve := !() -> int
 	{
 		Rules := AVLMap.{int,Tuple.{int,int,int[9] }}

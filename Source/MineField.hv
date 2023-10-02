@@ -36,18 +36,6 @@ MineFieldView := class extend GUIObject
 
 		tilesPool := base.vkOverlay.textDrawLayout.CreateDescriptorPool(0,20)
 
-		//smallSide := 0.15
-		//bigSide := 0.85
-		//for it,i : ![!{smallSide,smallSide} ,!{bigSide,smallSide} ,!{smallSide,bigSide} ,!{bigSide,bigSide}]
-		//{
-		//	verts[i].pos[0] = 30.0*it.0
-		//	verts[i].pos[1] = 30.0*it.1
-		//	verts[i].color[0] = 255
-		//	verts[i].color[1] = 255
-		//	verts[i].color[2] = 255
-		//}
-		//quadSmallMesh = base.vInstance.CreateMesh(TArraySpan.{u8}(verts[0]&->{u8^},4*GUIVertex->TypeSize),TArraySpan.{u8}(inds[0]&->{u8^},6*4),VKType(VType_UInt32,1))
-
 
 		atlasTest."this"(512,512,32)
 		atlasTest.AddImage(FSGetFile("Textures/Flag.webp"))
@@ -197,9 +185,25 @@ MineFieldView := class extend GUIObject
 				}else{
 					if base.firstPress
 					{
-						base.mineField.CleanField()
-						base.mineField.RandomizeField(35)
-						base.mineField.PressField(indX,indY)
+						while true
+						{
+							base.mineField.CleanField()
+							base.mineField.RandomizeField(35)
+							fld := ref base.mineField.GetField(indX,indY)
+							if fld.fieldType == "Mine"
+								continue
+							base.mineField.PressField(indX,indY)
+
+							while base.mineField.StepSolve() != 0 {}
+
+							if not base.mineField.IsFullyRevealed()
+								continue
+
+							base.mineField.Rehide()
+							base.mineField.PressField(indX,indY)
+
+							break
+						}
 						//while base.mineField.PressField(indX,indY) < 10
 						//{
 						//	base.mineField.CleanField()
