@@ -181,7 +181,7 @@ MineField := class extend GUIObject
 		return void
 	}
 
-	MousePressed := virtual !(int buttonNum, bool pressed,vec2f offset) -> void
+	MousePressed := virtual !(VkOverlayContext^ ctx,int buttonNum, bool pressed,vec2f offset) -> void
 	{
 		if not pressed
 			return void
@@ -211,6 +211,141 @@ MineField := class extend GUIObject
 				base.PressRight(indX,indY)
 		}
 		UpdateGPUField()
+		ctx.DataGeneration += 1
+	}
+	StepSolve := !() -> int
+	{
+
+		Rules := AVLMap.{int,Tuple.{int,int,int[9] }}
+
+		for x :  base.SizeX 
+		{
+			for y : base.SizeY
+			{
+				fld := base.GetField(x,y)
+
+				if not fld.isPressed
+					continue
+				if fld.isMine
+					continue
+
+				notOpenCount := 0
+				foundMines := 0
+				resArr := int[9]
+				for it : base.ForAround(x,y)
+				{
+					fld2 := base.GetField(it.0,it.1)
+					if fld2.isDefused
+					{
+						foundMines += 1
+						continue
+					}
+					if fld2.isPressed
+						continue
+
+					resArr[notOpenCount] = (it.0 shl 16) + it.1
+					notOpenCount += 1
+
+				}
+				if notOpenCount != 0
+				{
+					indx := (x shl 16) + y
+					rule := ref Rules[indx]
+					rule.0 = base.GetSpaceWeight(x,y) - foundMines
+					rule.1 = notOpenCount
+
+					for it : notOpenCount
+						rule.2[it] = resArr[it]
+				}
+			}
+		}
+
+
+		for itOut,oI : Rules
+		{
+			for itInner,iI : Rules
+			{
+				if itOut.1 > itInner.1
+					continue
+				if iI == oI
+					continue
+				
+				match := int
+				for i : itOut.1
+				{
+					for j : itInner.1
+					{
+						if itOut.2[i] == itInner.2[j]
+						{
+							match += 1
+						}
+					}
+				}
+
+				maybeCount := itOut.0 - (itOut.1 - match)
+				if match == itOut.1
+				{
+					itInner.0 -= itOut.0
+
+					for i : itOut.1
+					{
+						for j : itInner.1
+						{
+							if itOut.2[i] == itInner.2[j]
+							{
+								itInner.2[j] = itInner.2[itInner.1 - 1]
+								itInner.1 -= 1
+								break
+							}
+						}
+					}
+				}else if maybeCount == itInner.0
+				{
+					itInner.0 = 0
+					for i : itOut.1
+					{
+						for j : itInner.1
+						{
+							if itOut.2[i] == itInner.2[j]
+							{
+								itInner.2[j] = itInner.2[itInner.1 - 1]
+								itInner.1 -= 1
+								break
+							}
+						}
+					}
+					
+				}
+			}
+		}
+
+		for it,itInd : Rules
+		{
+			if it.0 == it.1 and it.0 != 0
+			{
+				result += 1
+
+				for i : it.1
+				{
+					nd := it.2[i]
+					x := nd shr 16
+					y := nd and_b 0xFFFF
+					base.PressRight(x,y)
+				}
+			}
+			if it.0 == 0 and it.1 != 0
+			{
+				result += 1
+
+				for i : it.1
+				{
+					nd := it.2[i]
+					x := nd shr 16
+					y := nd and_b 0xFFFF
+					base.PressField(x,y)
+				}
+			}
+		}
 	}
 	UpdateGPUField := !() -> void
 	{

@@ -35,12 +35,15 @@ SweeperNuklear := class extend SimpleWindow
 		ClearColor = vec4f(208 / 255, 220 / 255, 133 / 255,1.0)
 		mineFieldView = new MineField(this&,15,15)
 
+		testButton := new NkButton(this&,0,40,"Test",thisFont)
+
 		resetButton := new NkButton(this&,0,40,"Reset",thisFont)
 		lay := new LayoutHorizontal(![
 			new LayoutSpacer("",0),
 			new LayoutVertical(![
 				new LayoutSpacer("static",20),
 				resetButton,
+				testButton,
 				new LayoutSpacer("static",20),
 				mineFieldView
 			]),
@@ -50,6 +53,17 @@ SweeperNuklear := class extend SimpleWindow
 		resetButton.SetPressCallback(() ==> {
 			ResetField()
 			mineFieldView.UpdateGPUField()
+			RedrawWindow()
+		})
+
+		testButton.SetPressCallback(() ==> {
+
+			
+			while mineFieldView.StepSolve() != 0
+			{
+			}
+			mineFieldView.UpdateGPUField()
+			RedrawWindow()
 		})
 		return lay
 	}
@@ -214,6 +228,6 @@ main := !(char^[] args) -> void
 {
 	w := new SweeperNuklear(700,700,"MineSweeper")
 	w.InitField(15,15)
-	//w.SetFPSLimit(30)
+	w.SetFPSLimit(30)
 	w.Run()
 }
