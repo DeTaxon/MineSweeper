@@ -1,14 +1,6 @@
 //TODO check what cause memory overuse
 
 
-FieldBlock := class
-{
-	isMine := bool
-	isDefused := bool
-	isPressed := bool
-
-	"=" := default
-}
 
 SweeperNuklear := class extend SimpleWindow
 {
@@ -20,11 +12,10 @@ SweeperNuklear := class extend SimpleWindow
 	SizeX := int
 	SizeY := int
 
-	mineField := Vector.{FieldBlock}
-
 	firstPress := bool
 
-	mineFieldView := MineField^
+	mineField := MineField
+	mineFieldView := MineFieldView^
 
 	thisFont := Font^
 	
@@ -33,7 +24,7 @@ SweeperNuklear := class extend SimpleWindow
 		thisFont = CreateFont(FSGetFile("Goldman-Regular.ttf"),32)
 
 		ClearColor = vec4f(208 / 255, 220 / 255, 133 / 255,1.0)
-		mineFieldView = new MineField(this&,15,15)
+		mineFieldView = new MineFieldView(this&,15,15)
 
 		testButton := new NkButton(this&,0,40,"Test",thisFont)
 
@@ -59,7 +50,7 @@ SweeperNuklear := class extend SimpleWindow
 		testButton.SetPressCallback(() ==> {
 
 			
-			while mineFieldView.StepSolve() != 0
+			while mineField.StepSolve() != 0
 			{
 			}
 			mineFieldView.UpdateGPUField()
@@ -72,156 +63,21 @@ SweeperNuklear := class extend SimpleWindow
 		SizeX = dimX
 		SizeY = dimY
 
-		mineField.Resize(dimX*dimY)
+		mineField.Resize(dimX,dimY)
 
 		ResetField()
-	}
-	GetField := !(int X,int Y) -> ref FieldBlock
-	{
-		return mineField[X + Y*SizeX]
 	}
 
 	ResetField := !() -> void
 	{
 		firstPress = true
-		for it : mineField
-		{
-			it.isMine = false
-			it.isPressed = false
-			it.isDefused = false
-		}
 
-		mines := 35
-		while mines != 0
-		{
-			x := RandInt(0..(SizeX-1))
-			y := RandInt(0..(SizeY-1))
-
-			if GetField(x,y).isMine
-				continue
-			GetField(x,y).isMine = true
-			mines -= 1
-		}
+		mineField.CleanField()
 	}
 
-	GetSpaceWeight := !(int x, int y) -> int
-	{
-		for it : ForAround(x,y,true)
-		{
-			if GetField(it.0,it.1).isMine
-				result += 1
-		}
-	}
-	PressField := !(int x, int y) -> int
-	{
-		if GetField(x,y).isPressed
-			return 0
-		GetField(x,y).isPressed = true
-		if GetSpaceWeight(x,y) != 0
-			return 1
 
-		result = 1
-		for it : ForAround(x,y)
-		{
-			result += PressField(it.0,it.1)
-		}
-	}
-	PressAssist := !(int x, int y) -> void
-	{
-		itField := ref GetField(x,y)
-
-		if not itField.isPressed
-			return void
-		if itField.isMine
-			return void
-
-		unpressed := 0
-		foundMines := 0
-		totalMines := 0
-
-		for it : ForAround(x,y)
-		{
-			chk := ref GetField(it.0,it.1)
-			if chk.isDefused
-				foundMines += 1
-			if chk.isMine
-				totalMines += 1
-			if not chk.isPressed
-				unpressed += 1
-		}
-
-		if foundMines + unpressed == totalMines
-		{
-			for it : ForAround(x,y)
-			{
-				PressRight(it.0,it.1)
-			}
-		}else if totalMines == foundMines and unpressed != 0
-		{
-			for it : ForAround(x,y)
-			{
-				PressField(it.0,it.1)
-			}
-		}
-	}
-
-	PressRight := !(int x,int y) -> void
-	{
-		fld := ref GetField(x,y)
-		if fld.isPressed
-			return void
-
-		if fld.isMine
-		{
-			fld.isPressed = true
-			fld.isDefused = true
-		}else{
-			//printf("nah\n")
-		}
-	}
-
-	ForAround := !(int x, int y,bool useMiddle = false) -> ProxyForSweeper
-	{
-		result.base = this&
-		result.dimX = x
-		result.dimY = y
-		result.useMiddle = useMiddle
-	}
 }
 
-ProxyForSweeper := class
-{
-	base := SweeperNuklear^
-	dimX := int
-	dimY := int
-	useMiddle := bool
-
-	"for" := !() -> !()&-> Tuple.{int,int}
-	{
-		lambd := () ==> Tuple.{int,int}
-		{
-			diffs := ![-1,0,1]
-			for dX : diffs
-			{
-				newX := dimX + dX
-				if newX < 0 or newX >= base.SizeX
-					continue
-				for dY : diffs
-				{
-					if dX == 0 and dY == 0 and not useMiddle
-						continue
-					newY := dimY + dY
-					if newY < 0 or newY >= base.SizeY
-						continue
-
-					yield !{newX,newY}
-				}
-			}
-			
-		}
-		return lambd.Capture()
-	}
-}
 
 
 main := !(char^[] args) -> void
