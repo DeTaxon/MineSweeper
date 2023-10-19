@@ -214,7 +214,12 @@ MineFieldView := class extend GUIObject
 					}
 				}
 			case 1
-				base.mineField.PressRight(indX,indY)
+				if base.M1Pressed
+				{
+					base.mineField.PressAssist(indX,indY)
+				}else{
+					base.mineField.PressRight(indX,indY)
+				}
 		}
 		UpdateGPUField()
 		ctx.DataGeneration += 1
