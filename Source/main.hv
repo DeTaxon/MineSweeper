@@ -23,23 +23,44 @@ SweeperNuklear := class extend SimpleWindow
 	{
 		thisFont = CreateFont(FSGetFile("Goldman-Regular.ttf"),32)
 
+		layoutSettings := new LayoutVertical(![
+			new LayoutHorizontal(![
+				vkOverlay.CreateButton(0,40,"Easy",thisFont),
+				new LayoutSpacer("static",5),
+				vkOverlay.CreateButton(0,40,"Normal",thisFont),
+				new LayoutSpacer("static",5),
+				vkOverlay.CreateButton(0,40,"Hard",thisFont)
+			])
+		])
+
 		ClearColor = vec4f(208 / 255, 220 / 255, 133 / 255,1.0)
 		mineFieldView = new MineFieldView(this&,15,15)
 
-		testButton := new NkButton(this&,0,40,"Test",thisFont)
+		settings := vkOverlay.CreateButton(0,40,"settings",thisFont)
+		tabs := vkOverlay.CreateLayoutTabs(![
+				mineFieldView
+				layoutSettings
+		])
 
-		resetButton := new NkButton(this&,0,40,"Reset",thisFont)
+		resetButton := vkOverlay.CreateButton(0,40,"Reset",thisFont)
 		lay := new LayoutHorizontal(![
 			new LayoutSpacer("",0),
 			new LayoutVertical(![
 				new LayoutSpacer("static",20),
-				resetButton,
-				testButton,
+				new LayoutHorizontal(![
+					resetButton,
+					new LayoutSpacer("static",5),
+					settings
+				]),
 				new LayoutSpacer("static",20),
-				mineFieldView
+				tabs
 			]),
 			new LayoutSpacer("",0)
 		])
+
+		settings.SetPressCallback(() ==> {
+			tabs.NextTab()
+		})
 
 		resetButton.SetPressCallback(() ==> {
 			ResetField()
@@ -47,15 +68,6 @@ SweeperNuklear := class extend SimpleWindow
 			RedrawWindow()
 		})
 
-		testButton.SetPressCallback(() ==> {
-
-			
-			while mineField.StepSolve() != 0
-			{
-			}
-			mineFieldView.UpdateGPUField()
-			RedrawWindow()
-		})
 		return lay
 	}
 	InitField := !(int dimX, int dimY) -> void
