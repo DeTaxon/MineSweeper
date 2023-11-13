@@ -146,7 +146,7 @@ MineFieldView := class extend GUIObject
 
 			cntr += 4
 		}
-		baseMesh = base.vInstance.CreateMesh(TArraySpan.{u8}(vecData.GetPointer()->{u8^},4*vecData.Size()),TArraySpan.{u8}(indData.GetPointer()->{u8^},indData.Size()*4),VKType(VType_UInt32,1))
+		baseMesh = base.vInstance.CreateMesh(ArraySpan.{u8}(vecData.GetPointer()->{u8^},4*vecData.Size()),ArraySpan.{u8}(indData.GetPointer()->{u8^},indData.Size()*4),VKType(VType_UInt32,1))
 
 		baseIndCount = indData.Size()
 	}
@@ -300,7 +300,7 @@ MineFieldView := class extend GUIObject
 		}
 		if changedData
 		{
-			baseMesh.TransferData(TArraySpan.{u8}(vecData.GetPointer()->{u8^},4*vecData.Size()),TArraySpan.{u8}(indData.GetPointer()->{u8^},indData.Size()*4))
+			baseMesh.TransferData(ArraySpan.{u8}(vecData.GetPointer()->{u8^},4*vecData.Size()),ArraySpan.{u8}(indData.GetPointer()->{u8^},indData.Size()*4))
 		}
 	}
 	SetTileRect := !(float^ vecPtr,stbrp_rect^ setRect) -> void
