@@ -9,9 +9,6 @@ SweeperNuklear := class extend SimpleWindow
 	pressedMinePlace := void^
 	pressedMineDefused := void^
 
-	SizeX := int
-	SizeY := int
-
 	firstPress := bool
 
 	mineField := MineField
@@ -22,6 +19,8 @@ SweeperNuklear := class extend SimpleWindow
 	InitWindow := virtual !() -> GUIObject^
 	{
 		thisFont = CreateFont(FSGetFile("Goldman-Regular.ttf"),32)
+
+		goBack := vkOverlay.CreateButton(0,40,"Go Back",thisFont)
 
 		layoutSettings := new LayoutVertical(![
 			new LayoutHorizontal(![
@@ -34,7 +33,7 @@ SweeperNuklear := class extend SimpleWindow
 		])
 
 		ClearColor = vec4f(208 / 255, 220 / 255, 133 / 255,1.0)
-		mineFieldView = new MineFieldView(this&,15,15)
+		mineFieldView = new MineFieldView(this&,30,16)
 
 		settings := vkOverlay.CreateButton(0,40,"settings",thisFont)
 		tabs := vkOverlay.CreateLayoutTabs(![
@@ -72,11 +71,7 @@ SweeperNuklear := class extend SimpleWindow
 	}
 	InitField := !(int dimX, int dimY) -> void
 	{
-		SizeX = dimX
-		SizeY = dimY
-
 		mineField.Resize(dimX,dimY)
-
 		ResetField()
 	}
 
@@ -95,7 +90,7 @@ SweeperNuklear := class extend SimpleWindow
 main := !(char^[] args) -> void
 {
 	w := new SweeperNuklear(700,700,"MineSweeper")
-	w.InitField(15,15)
+	w.InitField(30,16)
 	w.SetFPSLimit(30)
 	w.Run()
 }

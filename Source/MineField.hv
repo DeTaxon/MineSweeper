@@ -98,7 +98,7 @@ MineFieldView := class extend GUIObject
 
 		for i : x
 		{
-			for j : x
+			for j : y
 			{
 				rect := ref atlasTest.rectangles[3 + ((i + j) and_b 1)]
 				val := vecPtr[backgroundSize + (i + j*x)*5*2*4]&
@@ -188,7 +188,7 @@ MineFieldView := class extend GUIObject
 						while true
 						{
 							base.mineField.CleanField()
-							base.mineField.RandomizeField(35)
+							base.mineField.RandomizeField(99)
 							fld := ref base.mineField.GetField(indX,indY)
 							if fld.fieldType == "Mine"
 								continue
@@ -227,9 +227,9 @@ MineFieldView := class extend GUIObject
 	UpdateGPUField := !() -> void
 	{
 		changedData := false
-		for i : base.SizeX
+		for i : base.mineField.SizeX
 		{
-			for j : base.SizeY
+			for j : base.mineField.SizeY
 			{
 				itInd := 0
 
@@ -259,7 +259,7 @@ MineFieldView := class extend GUIObject
 				}else{
 					itInd = 0
 				}
-				tInd := i + j*base.SizeX
+				tInd := i + j*base.mineField.SizeX
 				if itInd != tilesState[tInd]
 				{
 					tilesState[tInd] = itInd
