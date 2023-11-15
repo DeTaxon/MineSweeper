@@ -18,6 +18,13 @@ SweeperNuklear := class extend SimpleWindow
 	mineFieldView := MineFieldView^
 
 	thisFont := Font^
+
+	tabs := LayoutTabs^
+
+	SwitchToField := !() -> void
+	{
+		tabs?.SetTab(0)
+	}
 	
 	InitWindow := virtual !() -> GUIObject^
 	{
@@ -27,11 +34,11 @@ SweeperNuklear := class extend SimpleWindow
 
 		layoutSettings := new LayoutVertical(![
 			new LayoutHorizontal(![
-				vkOverlay.CreateButton(0,40,"Easy",thisFont, () ==> [this&] { this.SetField(9,9,10)}),
+				vkOverlay.CreateButton(0,40,"Easy",thisFont, () ==> [this&] { this.SetField(9,9,10) SwitchToField() }),
 				new LayoutSpacer("static",5)
-				vkOverlay.CreateButton(0,40,"Normal",thisFont, () ==> [this&] { this.SetField(16,16,40)}),
+				vkOverlay.CreateButton(0,40,"Normal",thisFont, () ==> [this&] { this.SetField(16,16,40) SwitchToField() }),
 				new LayoutSpacer("static",5),
-				vkOverlay.CreateButton(0,40,"Hard",thisFont, () ==> [this&]{ this.SetField(30,16,99)})
+				vkOverlay.CreateButton(0,40,"Hard",thisFont, () ==> [this&]{ this.SetField(30,16,99) SwitchToField() })
 			])
 		])
 
@@ -39,7 +46,7 @@ SweeperNuklear := class extend SimpleWindow
 		mineFieldView = new MineFieldView(this&)
 
 		settings := vkOverlay.CreateButton(0,40,"settings",thisFont)
-		tabs := vkOverlay.CreateLayoutTabs(![
+		tabs = vkOverlay.CreateLayoutTabs(![
 				mineFieldView
 				layoutSettings
 		])
