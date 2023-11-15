@@ -24,6 +24,9 @@ SweeperNuklear := class extend SimpleWindow
 	SwitchToField := !() -> void
 	{
 		tabs?.SetTab(0)
+
+		lay := mineFieldView.GetLayout(null)
+		SetWindowSize(lay.Sizes.x + 40,lay.Sizes.y + 100)
 	}
 	
 	InitWindow := virtual !() -> GUIObject^
