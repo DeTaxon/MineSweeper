@@ -20,12 +20,14 @@ MineField := class
 {
 	SizeX := int
 	SizeY := int
+	MinesCount := int
 	blocks := Vector.{FieldBlock}
 
-	Resize := !(int x, int y) -> void
+	Resize := !(int x, int y,int mineCount) -> void
 	{
 		SizeX = x
 		SizeY = y
+		MinesCount = mineCount
 		blocks.Resize(x*y)
 	}
 	CleanField := !() -> void
@@ -45,8 +47,9 @@ MineField := class
 			it.isRevealed = false
 		}
 	}
-	RandomizeField := !(int mines) -> void
+	RandomizeField := !() -> void
 	{
+		mines := MinesCount
 		while mines != 0
 		{
 			x := RandInt(0..SizeX)

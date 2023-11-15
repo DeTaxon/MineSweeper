@@ -24,40 +24,11 @@ MineFieldView := class extend GUIObject
 	indData := Vector.{int}
 	tilesState := Vector.{u8}
 
-	this := !(SweeperNuklear^ bck,int x, int y) -> void
+	ResetSize  := !() -> void
 	{
-		base = bck
-		boxSize = 30.0
-		margin = 2.0
-
-		tilesState.Resize(x*y)
-
+		x := base.mineField.SizeX
+		y := base.mineField.SizeY
 		SetSize("static",boxSize*x + margin*(x - 1), "static", boxSize*y + margin*(y - 1))
-
-		tilesPool := base.vkOverlay.textDrawLayout.CreateDescriptorPool(0,20)
-
-
-		atlasTest."this"(512,512,32)
-		atlasTest.AddImage(FSGetFile("Textures/Flag.webp"))
-		atlasTest.AddImage(FSGetFile("Textures/Bomb.webp"))
-		atlasTest.AddImage(FSGetFile("Textures/Background.webp"))
-		atlasTest.AddImage(FSGetFile("Textures/Tile1.webp"))
-		atlasTest.AddImage(FSGetFile("Textures/Tile2.webp"))
-		for i : 1..8
-		{
-			atlasTest.AddImage(FSGetFile(CreateString("Textures/",i,".webp")))
-		}
-
-		newImage := new Image()
-		newImage.CreateBlank(1,1)
-		newImage.ForEachPixelU8((x,y,ptr) ==> {
-			ptr[0] = 255
-			ptr[1] = 255
-			ptr[2] = 255
-			ptr[3] = 255
-		})
-		atlasTest.AddImage(newImage)
-		atlasTest.Finish(bck.vInstance)
 
 		bombRect = atlasTest.rectangles[1]&
 		flagRect = atlasTest.rectangles[0]&
@@ -65,13 +36,7 @@ MineFieldView := class extend GUIObject
 		numRect = atlasTest.rectangles[5]&
 		unknownRect = atlasTest.rectangles[3]&
 
-		atlasTestDesc = tilesPool.CreateDescriptor()
-		vSetTexture(bck.vInstance,atlasTestDesc,atlasTest.atlasTexture,bck.vInstance.SamplerNearest)
-
-
 		backgroundSize := 4*5
-		vecData.Resize(backgroundSize + x*y*5*2*4)
-		indData.Resize(6 + x*y*6*2)
 
 		vecPtr := vecData.GetPointer()
 
@@ -146,9 +111,61 @@ MineFieldView := class extend GUIObject
 
 			cntr += 4
 		}
+		baseMesh.TransferData(ArraySpan.{u8}(vecData.GetPointer()->{u8^},4*vecData.Size()),ArraySpan.{u8}(indData.GetPointer()->{u8^},indData.Size()*4))
+
+		baseIndCount = 6 + x*y*6*2
+	}
+	
+	this := !(SweeperNuklear^ bck) -> void
+	{
+		base = bck
+		boxSize = 30.0
+		margin = 2.0
+
+		maxX := 30 //TODO Magic Consts
+		maxY := 16
+
+		tilesState.Resize(maxX*maxY)
+
+		x := 1
+		y := 1
+
+		SetSize("static",boxSize*x + margin*(x - 1), "static", boxSize*y + margin*(y - 1))
+
+		tilesPool := base.vkOverlay.textDrawLayout.CreateDescriptorPool(0,20)
+
+
+		atlasTest."this"(512,512,32)
+		atlasTest.AddImage(FSGetFile("Textures/Flag.webp"))
+		atlasTest.AddImage(FSGetFile("Textures/Bomb.webp"))
+		atlasTest.AddImage(FSGetFile("Textures/Background.webp"))
+		atlasTest.AddImage(FSGetFile("Textures/Tile1.webp"))
+		atlasTest.AddImage(FSGetFile("Textures/Tile2.webp"))
+		for i : 1..8
+		{
+			atlasTest.AddImage(FSGetFile(CreateString("Textures/",i,".webp")))
+		}
+
+		newImage := new Image()
+		newImage.CreateBlank(1,1)
+		newImage.ForEachPixelU8((x,y,ptr) ==> {
+			ptr[0] = 255
+			ptr[1] = 255
+			ptr[2] = 255
+			ptr[3] = 255
+		})
+		atlasTest.AddImage(newImage)
+		atlasTest.Finish(bck.vInstance)
+
+		atlasTestDesc = tilesPool.CreateDescriptor()
+		vSetTexture(base.vInstance,atlasTestDesc,atlasTest.atlasTexture,base.vInstance.SamplerNearest)
+
+		backgroundSize := 4*5
+		vecData.Resize(backgroundSize + maxX*maxY*5*2*4)
+		indData.Resize(6 + maxX*maxY*6*2)
+
 		baseMesh = base.vInstance.CreateMesh(ArraySpan.{u8}(vecData.GetPointer()->{u8^},4*vecData.Size()),ArraySpan.{u8}(indData.GetPointer()->{u8^},indData.Size()*4),VKType(VType_UInt32,1))
 
-		baseIndCount = indData.Size()
 	}
 	PushDraw := virtual !(VkOverlayContext^ ctx,VkCommandBuffer cmdB,vec2f offset) -> void
 	{
@@ -188,7 +205,7 @@ MineFieldView := class extend GUIObject
 						while true
 						{
 							base.mineField.CleanField()
-							base.mineField.RandomizeField(99)
+							base.mineField.RandomizeField()
 							fld := ref base.mineField.GetField(indX,indY)
 							if fld.fieldType == "Mine"
 								continue
