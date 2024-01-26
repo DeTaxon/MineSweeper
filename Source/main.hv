@@ -36,13 +36,11 @@ SweeperNuklear := class extend SimpleWindow
 		goBack := vkOverlay.CreateButton(0,40,"Go Back",thisFont)
 
 		layoutSettings := new LayoutVertical(![
-			new LayoutHorizontal(![
 				vkOverlay.CreateButton(0,40,"Easy",thisFont, () ==> [this&] { this.SetField(9,9,10) SwitchToField() }),
 				new LayoutSpacer("static",5)
 				vkOverlay.CreateButton(0,40,"Normal",thisFont, () ==> [this&] { this.SetField(16,16,40) SwitchToField() }),
 				new LayoutSpacer("static",5),
 				vkOverlay.CreateButton(0,40,"Hard",thisFont, () ==> [this&]{ this.SetField(30,16,99) SwitchToField() })
-			])
 		])
 
 		ClearColor = vec4f(208 / 255, 220 / 255, 133 / 255,1.0)
@@ -105,7 +103,7 @@ SweeperNuklear := class extend SimpleWindow
 
 main := !(char^[] args) -> void
 {
-	w := new SweeperNuklear(700,700,"MineSweeper")
+	w := new SweeperNuklear(346,406,"MineSweeper")
 	w.SetField(10,10,10)
 	w.SetFPSLimit(30)
 	w.Run()

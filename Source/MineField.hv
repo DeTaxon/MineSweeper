@@ -141,6 +141,7 @@ MineFieldView := class extend GUIObject
 		atlasTest.AddImage(FSGetFile("Textures/Background.webp"))
 		atlasTest.AddImage(FSGetFile("Textures/Tile1.webp"))
 		atlasTest.AddImage(FSGetFile("Textures/Tile2.webp"))
+
 		for i : 1..8
 		{
 			atlasTest.AddImage(FSGetFile(CreateString("Textures/",i,".webp")))
@@ -165,7 +166,6 @@ MineFieldView := class extend GUIObject
 		indData.Resize(6 + maxX*maxY*6*2)
 
 		baseMesh = base.vInstance.CreateMesh(ArraySpan.{u8}(vecData.GetPointer()->{u8^},4*vecData.Size()),ArraySpan.{u8}(indData.GetPointer()->{u8^},indData.Size()*4),VKType(VType_UInt32,1))
-
 	}
 	PushDraw := virtual !(VkOverlayContext^ ctx,VkCommandBuffer cmdB,vec2f offset) -> void
 	{
